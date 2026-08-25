@@ -1,0 +1,202 @@
+application:
+  actions: actions
+  web: web-src
+  runtimeManifest:
+    packages:
+      ulta-wfb:
+        license: Apache-2.0
+        actions:
+          presign-upload:
+            function: actions/presign-upload/index.js
+            web: 'yes'
+            runtime: nodejs:20
+            inputs:
+              LOG_LEVEL: info
+              S3_PRESIGN_URL: $S3_PRESIGN_URL
+              S3_ACCESS_KEY: $S3_ACCESS_KEY
+              S3_SECRET_KEY: $S3_SECRET_KEY
+              S3_BUCKET: $S3_BUCKET
+              S3_REGION: $S3_REGION
+            annotations:
+              require-adobe-auth: false
+              final: true
+
+          execute-workflow:
+            function: actions/execute-workflow/index.js
+            web: 'yes'
+            runtime: nodejs:20
+            inputs:
+              LOG_LEVEL: info
+              WORKFLOW_ID: $WORKFLOW_ID
+              IMS_USER_ID: $IMS_USER_ID
+              API_KEY: $API_KEY
+              IMS_OAUTH_S2S_CLIENT_ID: $IMS_OAUTH_S2S_CLIENT_ID
+              IMS_OAUTH_S2S_CLIENT_SECRET: $IMS_OAUTH_S2S_CLIENT_SECRET
+              IMS_OAUTH_S2S_ORG_ID: $IMS_OAUTH_S2S_ORG_ID
+              IMS_OAUTH_S2S_SCOPES: $IMS_OAUTH_S2S_SCOPES
+              WORKFLOW_TEMPLATE_NODE_ID: $WORKFLOW_TEMPLATE_NODE_ID
+              WORKFLOW_ADDITIONAL_TEMPLATE_NODE_IDS: $WORKFLOW_ADDITIONAL_TEMPLATE_NODE_IDS
+              WORKFLOW_SKU_NODE_ID: $WORKFLOW_SKU_NODE_ID
+              WORKFLOW_FILENAME_NODE_ID: $WORKFLOW_FILENAME_NODE_ID
+              WORKFLOW_BACKGROUND_NODE_ID: $WORKFLOW_BACKGROUND_NODE_ID
+              WORKFLOW_TEMPLATE_SIZE_NODE_ID: $WORKFLOW_TEMPLATE_SIZE_NODE_ID
+            annotations:
+              require-adobe-auth: false
+              final: true
+
+          check-status:
+            function: actions/check-status/index.js
+            web: 'yes'
+            runtime: nodejs:20
+            limits:
+              timeout: 180000
+            inputs:
+              LOG_LEVEL: info
+              IMS_USER_ID: $IMS_USER_ID
+              API_KEY: $API_KEY
+              IMS_OAUTH_S2S_CLIENT_ID: $IMS_OAUTH_S2S_CLIENT_ID
+              IMS_OAUTH_S2S_CLIENT_SECRET: $IMS_OAUTH_S2S_CLIENT_SECRET
+              IMS_OAUTH_S2S_ORG_ID: $IMS_OAUTH_S2S_ORG_ID
+              IMS_OAUTH_S2S_SCOPES: $IMS_OAUTH_S2S_SCOPES
+            annotations:
+              require-adobe-auth: false
+              final: true
+
+          check-executions:
+            function: actions/check-executions/index.js
+            web: 'yes'
+            runtime: nodejs:20
+            inputs:
+              LOG_LEVEL: info
+              IMS_USER_ID: $IMS_USER_ID
+              API_KEY: $API_KEY
+              IMS_OAUTH_S2S_CLIENT_ID: $IMS_OAUTH_S2S_CLIENT_ID
+              IMS_OAUTH_S2S_CLIENT_SECRET: $IMS_OAUTH_S2S_CLIENT_SECRET
+              IMS_OAUTH_S2S_ORG_ID: $IMS_OAUTH_S2S_ORG_ID
+              IMS_OAUTH_S2S_SCOPES: $IMS_OAUTH_S2S_SCOPES
+            annotations:
+              require-adobe-auth: false
+              final: true
+
+          list-batches:
+            function: actions/list-batches/index.js
+            web: 'yes'
+            runtime: nodejs:20
+            inputs:
+              LOG_LEVEL: info
+              IMS_USER_ID: $IMS_USER_ID
+              API_KEY: $API_KEY
+              IMS_OAUTH_S2S_CLIENT_ID: $IMS_OAUTH_S2S_CLIENT_ID
+              IMS_OAUTH_S2S_CLIENT_SECRET: $IMS_OAUTH_S2S_CLIENT_SECRET
+              IMS_OAUTH_S2S_ORG_ID: $IMS_OAUTH_S2S_ORG_ID
+              IMS_OAUTH_S2S_SCOPES: $IMS_OAUTH_S2S_SCOPES
+            annotations:
+              require-adobe-auth: false
+              final: true
+
+          cancel-batch:
+            function: actions/cancel-batch/index.js
+            web: 'yes'
+            runtime: nodejs:20
+            inputs:
+              LOG_LEVEL: info
+              IMS_USER_ID: $IMS_USER_ID
+              API_KEY: $API_KEY
+              IMS_OAUTH_S2S_CLIENT_ID: $IMS_OAUTH_S2S_CLIENT_ID
+              IMS_OAUTH_S2S_CLIENT_SECRET: $IMS_OAUTH_S2S_CLIENT_SECRET
+              IMS_OAUTH_S2S_ORG_ID: $IMS_OAUTH_S2S_ORG_ID
+              IMS_OAUTH_S2S_SCOPES: $IMS_OAUTH_S2S_SCOPES
+            annotations:
+              require-adobe-auth: false
+              final: true
+
+          refresh-presign:
+            function: actions/refresh-presign/index.js
+            web: 'yes'
+            runtime: nodejs:20
+            inputs:
+              LOG_LEVEL: info
+              S3_PRESIGN_URL: $S3_PRESIGN_URL
+              S3_ACCESS_KEY: $S3_ACCESS_KEY
+              S3_SECRET_KEY: $S3_SECRET_KEY
+              S3_BUCKET: $S3_BUCKET
+              S3_REGION: $S3_REGION
+            annotations:
+              require-adobe-auth: false
+              final: true
+
+          default-additional-templates:
+            function: actions/default-additional-templates/index.js
+            web: 'yes'
+            runtime: nodejs:20
+            inputs:
+              LOG_LEVEL: info
+              S3_PRESIGN_URL: $S3_PRESIGN_URL
+              S3_ACCESS_KEY: $S3_ACCESS_KEY
+              S3_SECRET_KEY: $S3_SECRET_KEY
+              S3_BUCKET: $S3_BUCKET
+              S3_REGION: $S3_REGION
+            annotations:
+              require-adobe-auth: false
+              final: true
+
+          preview-payload:
+            function: actions/preview-payload/index.js
+            web: 'yes'
+            runtime: nodejs:20
+            inputs:
+              LOG_LEVEL: info
+              WORKFLOW_ID: $WORKFLOW_ID
+              WORKFLOW_TEMPLATE_NODE_ID: $WORKFLOW_TEMPLATE_NODE_ID
+              WORKFLOW_ADDITIONAL_TEMPLATE_NODE_IDS: $WORKFLOW_ADDITIONAL_TEMPLATE_NODE_IDS
+              WORKFLOW_SKU_NODE_ID: $WORKFLOW_SKU_NODE_ID
+              WORKFLOW_FILENAME_NODE_ID: $WORKFLOW_FILENAME_NODE_ID
+              WORKFLOW_BACKGROUND_NODE_ID: $WORKFLOW_BACKGROUND_NODE_ID
+              WORKFLOW_TEMPLATE_SIZE_NODE_ID: $WORKFLOW_TEMPLATE_SIZE_NODE_ID
+            annotations:
+              require-adobe-auth: false
+              final: true
+
+          # SKU Personalization — both call the Photoshop API (actions/libs/photoshopClient.js),
+          # reusing the same IMS OAuth Server-to-Server credential as run-workflow.adobe.io above.
+          # That credential's Developer Console project needs the "Photoshop API" added to it.
+          psd-manifest:
+            function: actions/psd-manifest/index.js
+            web: 'yes'
+            runtime: nodejs:20
+            limits:
+              timeout: 180000
+            inputs:
+              LOG_LEVEL: info
+              API_KEY: $API_KEY
+              IMS_OAUTH_S2S_CLIENT_ID: $IMS_OAUTH_S2S_CLIENT_ID
+              IMS_OAUTH_S2S_CLIENT_SECRET: $IMS_OAUTH_S2S_CLIENT_SECRET
+              IMS_OAUTH_S2S_ORG_ID: $IMS_OAUTH_S2S_ORG_ID
+              IMS_OAUTH_S2S_SCOPES: $IMS_OAUTH_S2S_SCOPES
+              # Needed to presign one S3 destination per layer rendition (see
+              # actions/psd-manifest/index.js) — same presign proxy as presign-upload.
+              S3_PRESIGN_URL: $S3_PRESIGN_URL
+              S3_ACCESS_KEY: $S3_ACCESS_KEY
+              S3_SECRET_KEY: $S3_SECRET_KEY
+              S3_BUCKET: $S3_BUCKET
+              S3_REGION: $S3_REGION
+            annotations:
+              require-adobe-auth: false
+              final: true
+
+          psd-composite:
+            function: actions/psd-composite/index.js
+            web: 'yes'
+            runtime: nodejs:20
+            limits:
+              timeout: 300000
+            inputs:
+              LOG_LEVEL: info
+              API_KEY: $API_KEY
+              IMS_OAUTH_S2S_CLIENT_ID: $IMS_OAUTH_S2S_CLIENT_ID
+              IMS_OAUTH_S2S_CLIENT_SECRET: $IMS_OAUTH_S2S_CLIENT_SECRET
+              IMS_OAUTH_S2S_ORG_ID: $IMS_OAUTH_S2S_ORG_ID
+              IMS_OAUTH_S2S_SCOPES: $IMS_OAUTH_S2S_SCOPES
+            annotations:
+              require-adobe-auth: false
+              final: true

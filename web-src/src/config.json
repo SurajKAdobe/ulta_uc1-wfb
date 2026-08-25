@@ -1,0 +1,13 @@
+{
+  "ulta-wfb/presign-upload": "https://localhost:9080/api/v1/web/ulta-wfb/presign-upload",
+  "ulta-wfb/execute-workflow": "https://localhost:9080/api/v1/web/ulta-wfb/execute-workflow",
+  "ulta-wfb/check-status": "https://localhost:9080/api/v1/web/ulta-wfb/check-status",
+  "ulta-wfb/check-executions": "https://localhost:9080/api/v1/web/ulta-wfb/check-executions",
+  "ulta-wfb/list-batches": "https://localhost:9080/api/v1/web/ulta-wfb/list-batches",
+  "ulta-wfb/cancel-batch": "https://localhost:9080/api/v1/web/ulta-wfb/cancel-batch",
+  "ulta-wfb/refresh-presign": "https://localhost:9080/api/v1/web/ulta-wfb/refresh-presign",
+  "ulta-wfb/default-additional-templates": "https://localhost:9080/api/v1/web/ulta-wfb/default-additional-templates",
+  "ulta-wfb/preview-payload": "https://localhost:9080/api/v1/web/ulta-wfb/preview-payload",
+  "ulta-wfb/psd-manifest": "https://localhost:9080/api/v1/web/ulta-wfb/psd-manifest",
+  "ulta-wfb/psd-composite": "https://localhost:9080/api/v1/web/ulta-wfb/psd-composite"
+}

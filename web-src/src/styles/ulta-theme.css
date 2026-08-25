@@ -1,0 +1,401 @@
+:root {
+  /* Sampled from web-src/ulta_logo.png */
+  --ulta-accent: #F47C39;
+  --ulta-accent-soft: #FDEEE4;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  background: var(--spectrum-global-color-gray-50, #fff);
+}
+
+/* Single-page shell: header is fixed height, main area fills the rest of the
+   viewport with no page-level scroll. Columns get their own scroll as a safety
+   net on short viewports, but content is sized to fit without it. */
+.ulta-shell {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.ulta-main {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 16px 24px;
+  box-sizing: border-box;
+}
+
+.ulta-grid {
+  height: 100%;
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 24px;
+}
+
+.ulta-col {
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+@media (max-width: 900px) {
+  .ulta-shell { height: auto; overflow: visible; }
+  body { overflow: auto; }
+  .ulta-grid { grid-template-columns: 1fr; height: auto; }
+}
+
+@media (max-width: 640px) {
+  .ulta-header { padding-left: 16px !important; padding-right: 16px !important; }
+  .ulta-main { padding: 12px !important; }
+}
+
+@keyframes ulta-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ulta-slide-down {
+  from { opacity: 0; max-height: 0; }
+  to { opacity: 1; max-height: 480px; }
+}
+
+@keyframes ulta-progress-sweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
+}
+
+.ulta-fade-in {
+  animation: ulta-fade-in 0.35s ease-out both;
+}
+
+.ulta-preview-panel {
+  animation: ulta-slide-down 0.25s ease-out both;
+  overflow: hidden;
+}
+
+.ulta-busy {
+  transition: opacity 0.25s ease, filter 0.25s ease;
+}
+
+.ulta-busy[data-disabled="true"] {
+  opacity: 0.5;
+  filter: grayscale(30%);
+  pointer-events: none;
+}
+
+.ulta-progress-track {
+  position: relative;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--ulta-accent-soft);
+  overflow: hidden;
+}
+
+.ulta-progress-indeterminate::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  height: 100%;
+  width: 40%;
+  border-radius: 2px;
+  background: var(--ulta-accent);
+  animation: ulta-progress-sweep 1.1s ease-in-out infinite;
+}
+
+/* Same shimmer-sweep technique as .ulta-progress-indeterminate above, applied to
+   a solid block instead of a progress bar — used for skeleton loading placeholders. */
+.ulta-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--spectrum-global-color-gray-200);
+}
+
+.ulta-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+  animation: ulta-skeleton-sweep 1.4s ease-in-out infinite;
+}
+
+@keyframes ulta-skeleton-sweep {
+  100% { transform: translateX(100%); }
+}
+
+.ulta-progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--ulta-accent);
+  transition: width 0.4s ease;
+}
+
+.ulta-pill {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--ulta-accent-soft);
+  color: var(--ulta-accent);
+  letter-spacing: 0.3px;
+}
+
+.ulta-preview-card {
+  border-radius: 8px;
+  border: 1px solid var(--spectrum-global-color-gray-200);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+.ulta-preview-scroll {
+  max-height: 220px;
+  overflow: auto;
+}
+
+@keyframes ulta-row-in {
+  from { opacity: 0; transform: translateX(-6px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.ulta-table {
+  width: 100%;
+  /* separate (not collapse) — sticky thead + border-collapse is a known browser bug
+     where the stuck header row overlaps the first tbody row instead of sitting above it */
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12px;
+}
+
+.ulta-table th,
+.ulta-table td {
+  text-align: left;
+  padding: 7px 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-right: 1px solid var(--spectrum-global-color-gray-200);
+}
+
+.ulta-table th:last-child,
+.ulta-table td:last-child {
+  border-right: none;
+}
+
+.ulta-table-index {
+  width: 40px;
+  color: var(--spectrum-global-color-gray-600);
+  text-align: right;
+}
+
+.ulta-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--spectrum-global-color-gray-75, #f4f4f4);
+  color: var(--spectrum-global-color-gray-700);
+  font-weight: 600;
+  border-bottom: 2px solid var(--ulta-accent);
+}
+
+.ulta-col-resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  user-select: none;
+}
+
+.ulta-col-resizer:hover {
+  background: var(--ulta-accent);
+}
+
+.ulta-table-row {
+  animation: ulta-row-in 0.25s ease-out both;
+  transition: background-color 0.15s ease;
+  border-bottom: 1px solid var(--spectrum-global-color-gray-200);
+}
+
+.ulta-table-row:nth-child(even) {
+  background: var(--spectrum-global-color-gray-75, #fafafa);
+}
+
+.ulta-table-row:hover {
+  background: var(--ulta-accent-soft);
+}
+
+.ulta-output-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 108px);
+  gap: 10px;
+}
+
+.ulta-output-card {
+  width: 100%;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ulta-output-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+.ulta-output-thumb-btn {
+  position: relative;
+  width: 100%;
+  height: 80px;
+  padding: 0;
+  border: none;
+  cursor: pointer;
+  background: var(--spectrum-global-color-gray-100);
+  display: block;
+}
+
+.ulta-output-thumb {
+  width: 100%;
+  height: 100%;
+  /* contain, not cover — output renditions vary in aspect ratio (960x768, 1500x896,
+     1500x1500, ...) and cover was cropping into the design instead of letterboxing. */
+  object-fit: contain;
+  display: block;
+}
+
+.ulta-output-thumb-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  background: rgba(0, 0, 0, 0);
+  opacity: 0;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+.ulta-output-thumb-btn:hover .ulta-output-thumb-overlay,
+.ulta-output-thumb-btn:focus-visible .ulta-output-thumb-overlay {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.ulta-output-meta {
+  padding: 6px 8px;
+}
+
+.ulta-psd-icon {
+  width: 14px;
+  height: 14px;
+  display: block;
+  object-fit: contain;
+}
+
+.ulta-psd-badge {
+  --spectrum-actionbutton-height: auto;
+  min-height: 0;
+  padding: 2px 6px !important;
+  font-size: 10px;
+  color: var(--spectrum-global-color-gray-700);
+  gap: 3px;
+}
+
+.ulta-lightbox {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.ulta-lightbox-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+}
+
+.ulta-lightbox-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ulta-lightbox-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  animation: ulta-fade-in 0.2s ease-out both;
+}
+
+.ulta-lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+}
+
+.ulta-lightbox-nav-left { left: 0; }
+.ulta-lightbox-nav-right { right: 0; }
+
+.ulta-lightbox-footer {
+  padding-top: 16px;
+  border-top: 1px solid var(--spectrum-global-color-gray-200);
+}
+
+/* Executing keeps the accent-colored button "alive" looking rather than
+   fading to Spectrum's default grayed-out disabled state — isDisabled is still
+   set (to block double-submits). Spectrum marks the disabled state with a native
+   `disabled` attribute (not aria-disabled), and dims via opacity + a muted text
+   color on descendants, so both need an explicit, unqualified override here. */
+.ulta-execute-btn.ulta-executing,
+.ulta-execute-btn.ulta-executing:disabled {
+  background-color: var(--ulta-accent) !important;
+  opacity: 1 !important;
+}
+
+.ulta-execute-btn.ulta-executing *,
+.ulta-execute-btn.ulta-executing:disabled * {
+  color: #fff !important;
+  opacity: 1 !important;
+}
+
+@keyframes ulta-spin {
+  to { transform: rotate(360deg); }
+}
+
+.ulta-spinner {
+  display: inline-block;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: ulta-spin 0.7s linear infinite;
+}
+
+.ulta-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: transform 0.1s ease;
+}
+
+.ulta-copy-btn:active {
+  transform: scale(0.95);
+}

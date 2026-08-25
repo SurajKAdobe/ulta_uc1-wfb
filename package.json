@@ -1,0 +1,21 @@
+{
+  "name": "ulta-uc1-wfb",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Ulta Beauty batch creative production workflow automation UI (Adobe App Builder)",
+  "scripts": {
+    "dev": "aio app dev",
+    "run": "aio app run",
+    "deploy": "aio app deploy"
+  },
+  "dependencies": {
+    "@adobe/aio-lib-photoshop-api": "^1.1.0",
+    "@adobe/aio-sdk": "^6.0.0",
+    "@adobe/react-spectrum": "^3.0.0",
+    "@spectrum-icons/workflow": "^4.0.0",
+    "nanoid": "^5.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-rnd": "^10.5.3"
+  }
+}

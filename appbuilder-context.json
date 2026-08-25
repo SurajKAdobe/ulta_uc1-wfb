@@ -1,0 +1,38 @@
+{
+  "name": "ulta-uc1-wfb",
+  "kind": "app-builder-full-stack",
+  "description": "Ulta Beauty batch creative production workflow automation UI. Upload CSV + PSD templates, trigger a Workflow Builder batch execution, show status.",
+  "frontend": {
+    "path": "web-src",
+    "publicStaticAssets": true,
+    "actionConfigFile": "web-src/src/config.json"
+  },
+  "backend": {
+    "path": "actions",
+    "runtime": "Adobe I/O Runtime",
+    "authBoundary": "Runtime actions"
+  },
+  "auth": {
+    "platformAuthentication": "require-adobe-auth=false",
+    "notes": "Internal tool with no login screen by design (out of v1 scope). Actions are unauthenticated at the platform level — anyone with the action URL can invoke them. AWS/Workflow Builder credentials still never leave the backend. Revisit with IMS PKCE SPA login if this needs to be locked down to specific users."
+  },
+  "storage": {
+    "primary": "External S3 presign-proxy service (S3_PRESIGN_URL), credentials held in action env only",
+    "notes": [
+      "presign-upload calls the proxy server-side with S3_ACCESS_KEY/S3_SECRET_KEY from .env to get putUrl/getUrl.",
+      "Browser PUTs bytes directly to putUrl and Workflow Builder reads from getUrl — action code never sees file bytes, browser never sees AWS credentials."
+    ]
+  },
+  "workflow": {
+    "provider": "Adobe Workflow Builder",
+    "apiEndpoint": "https://run-workflow.adobe.io/batch/execute",
+    "workflowId": "0d3fb066-8ee7-409a-aedf-9664ad89a4a2",
+    "friendlyName": "Ulta Beauty Product Image Workflow",
+    "secretsHeldInAction": ["ACCESS_TOKEN", "IMS_ORG_ID", "IMS_USER_ID", "API_KEY"],
+    "note": "Bearer token and API key are configured server-side only. Never sent to or stored in the frontend."
+  },
+  "developerModes": {
+    "fastLocal": "aio app dev",
+    "runtimeRealistic": "aio app run"
+  }
+}

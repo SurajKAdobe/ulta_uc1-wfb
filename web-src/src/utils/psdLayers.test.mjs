@@ -15,6 +15,7 @@ const manifest = [
         name: 'title',
         type: 'textLayer',
         bounds: { top: 10, left: 10, right: 90, bottom: 30 }, // v2 shape
+        rotate: 15,
         thumbnail: { mediaType: 'image/png', url: 'https://example.com/thumb.png' } // v2 shape
       },
       { id: 4, name: 'no-bounds-child', type: 'layer' }
@@ -26,8 +27,8 @@ const flat = flattenLayers(manifest)
 
 assert.deepEqual(flat.map(l => l.id), [2, 3], 'keeps only layers with bounds, in tree order')
 assert.deepEqual(flat.map(l => l.depth), [0, 1], 'tracks nesting depth for indentation')
-assert.deepEqual(flat[0].bounds, { left: 0, top: 0, width: 100, height: 100 }, 'v1 {left,top,width,height} bounds pass through')
-assert.deepEqual(flat[1].bounds, { left: 10, top: 10, width: 80, height: 20 }, 'v2 {left,top,right,bottom} bounds normalize to width/height')
+assert.deepEqual(flat[0].bounds, { left: 0, top: 0, width: 100, height: 100, rotate: 0 }, 'v1 {left,top,width,height} bounds pass through, rotate defaults to 0')
+assert.deepEqual(flat[1].bounds, { left: 10, top: 10, width: 80, height: 20, rotate: 15 }, 'v2 {left,top,right,bottom} bounds normalize to width/height, rotate carried in')
 assert.equal(flat[1].thumbnail, 'https://example.com/thumb.png', 'v2 {mediaType,url} thumbnail normalizes to a plain URL string')
 assert.equal(flattenLayers([]).length, 0, 'empty input -> empty output')
 assert.equal(flattenLayers(undefined).length, 0, 'undefined input -> empty output')

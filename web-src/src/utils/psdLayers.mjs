@@ -1,13 +1,16 @@
 // Normalizes bounds to {left, top, width, height} regardless of which Photoshop
 // API version answered — v1 used that shape directly, v2's manifest reportedly
 // uses {left, top, right, bottom} instead (per Adobe's v1-to-v2 migration notes).
-function normalizeBounds (bounds) {
+// `rotate` is folded in here too (from the manifest's own per-layer `rotate`
+// field) so rotation lives alongside position/size as one piece of geometry that
+// drag/resize/rotate edits all update the same way.
+function normalizeBounds (bounds, rotate) {
   if (!bounds) return null
   const { left = 0, top = 0 } = bounds
   const width = bounds.width ?? (bounds.right != null ? bounds.right - left : undefined)
   const height = bounds.height ?? (bounds.bottom != null ? bounds.bottom - top : undefined)
   if (width == null || height == null) return null
-  return { left, top, width, height }
+  return { left, top, width, height, rotate: rotate || 0 }
 }
 
 // v1 thumbnails were a plain presigned URL string; v2's are reportedly a
@@ -24,7 +27,7 @@ function normalizeThumbnail (thumbnail) {
 // smartObject/fill types, not e.g. a flat background layer).
 export function flattenLayers (layers, out = [], depth = 0) {
   for (const layer of layers || []) {
-    const bounds = normalizeBounds(layer.bounds)
+    const bounds = normalizeBounds(layer.bounds, layer.rotate)
     if (bounds) {
       out.push({
         ...layer,

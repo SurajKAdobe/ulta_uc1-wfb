@@ -40,8 +40,8 @@ export default function Header({ activeTab, onTabChange }) {
             onSelectionChange={onTabChange}
           >
             <TabList>
-              <Item key={TABS.COMPILATION}>SKU Compilation</Item>
-              <Item key={TABS.PERSONALIZATION}>SKU Personalization</Item>
+              <Item key={TABS.COMPILATION}>SKU Compilation (UC 1)</Item>
+              <Item key={TABS.PERSONALIZATION}>SKU Personalization (UC 4)</Item>
             </TabList>
           </Tabs>
         </Flex>

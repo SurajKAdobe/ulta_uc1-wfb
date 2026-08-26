@@ -28,7 +28,20 @@ async function main (params) {
     const job = await client.modifyDocument(
       { href: presignedUrl, storage: 'external' },
       { href: outputPutUrl, storage: 'external', type: 'image/vnd.adobe.photoshop' },
-      { layers: edits.map(({ id, bounds, visible }) => ({ id, edit: {}, bounds, visible })) }
+      {
+        // `rotate` lives on `bounds` on our side (see psdLayers.mjs) purely so
+        // drag/resize/rotate edits are one piece of geometry to update together —
+        // the manifest reports it as a top-level field on the *layer*, not nested
+        // inside its Bounds object, so split it back out here. Unverified whether
+        // Photoshop's edit API actually honors a rotate on Layer edits at all (the
+        // V1 SDK's Layer typedef doesn't list it) — included on a best-effort
+        // basis; if it's silently ignored, rotation will show correctly in the
+        // canvas but not in the saved/downloaded PSD.
+        layers: edits.map(({ id, bounds, visible }) => {
+          const { rotate, ...restBounds } = bounds
+          return { id, edit: {}, bounds: restBounds, rotate, visible }
+        })
+      }
     )
     await job.pollUntilDone()
 

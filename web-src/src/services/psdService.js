@@ -16,9 +16,13 @@ export async function getPsdManifest (presignedUrl) {
 }
 
 // Re-uploads the current layer bounds as a brand new composite PSD (see
-// psd-composite/index.js — "create" and "edit" are the same call).
-export async function saveComposite (sourceKey, edits) {
-  const presignedUrl = await refreshPresignedUrl(sourceKey)
+// psd-composite/index.js — "create" and "edit" are the same call). `source` is
+// either { key } for a PSD we uploaded ourselves (refreshed since presigned
+// URLs expire and this may run a while after upload), or { presignedUrl } for
+// one that's already hosted elsewhere (e.g. a UC4 workflow's own output PSD —
+// no S3 key of ours to refresh).
+export async function saveComposite (source, edits) {
+  const presignedUrl = source.key ? await refreshPresignedUrl(source.key) : source.presignedUrl
   const { putUrl, getUrl, key } = await callAction('presign-upload', {
     kind: 'psd',
     fileName: 'composite.psd'

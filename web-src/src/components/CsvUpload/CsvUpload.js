@@ -7,7 +7,7 @@ import ChevronRight from '@spectrum-icons/workflow/ChevronRight'
 
 const PAGE_SIZE = 8
 
-function formatSize (bytes) {
+export function formatSize (bytes) {
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`

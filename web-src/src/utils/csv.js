@@ -1,6 +1,6 @@
 // Splits one CSV line into fields, honoring double-quoted fields (which may
 // contain commas and "" as an escaped quote).
-function splitCsvLine (line) {
+export function splitCsvLine (line) {
   const fields = []
   let field = ''
   let inQuotes = false
@@ -73,6 +73,20 @@ export function parseCsvRows (text) {
     })
 
   return { headers, rows, missingColumns }
+}
+
+// UC4's input CSV (e.g. UC4_input.csv) has no header row at all — every line is
+// data. Synthesizes "Column N" headers (for CsvUpload's preview table) instead
+// of assuming row 1 is a header like parseCsv/parseCsvRows do for UC1. Field
+// semantics (which column is what) aren't mapped here — that's tied to the UC4
+// workflow's own input node ids, which aren't finalized yet (see
+// actions/execute-uc4-workflow/index.js).
+export function parseUc4Csv (text) {
+  const lines = text.split(/\r\n|\r|\n/).filter(line => line.trim().length > 0)
+  const rows = lines.map(splitCsvLine).filter(cells => cells.some(c => c !== ''))
+  const columnCount = rows.reduce((max, r) => Math.max(max, r.length), 0)
+  const headers = Array.from({ length: columnCount }, (_, i) => `Column ${i + 1}`)
+  return { headers, rows, recordCount: rows.length }
 }
 
 // Returns every data row (CsvUpload paginates client-side rather than this

@@ -9,5 +9,7 @@
   "ulta-wfb/default-additional-templates": "https://localhost:9080/api/v1/web/ulta-wfb/default-additional-templates",
   "ulta-wfb/preview-payload": "https://localhost:9080/api/v1/web/ulta-wfb/preview-payload",
   "ulta-wfb/psd-manifest": "https://localhost:9080/api/v1/web/ulta-wfb/psd-manifest",
-  "ulta-wfb/psd-composite": "https://localhost:9080/api/v1/web/ulta-wfb/psd-composite"
+  "ulta-wfb/psd-composite": "https://localhost:9080/api/v1/web/ulta-wfb/psd-composite",
+  "ulta-wfb/execute-uc4-workflow": "https://localhost:9080/api/v1/web/ulta-wfb/execute-uc4-workflow",
+  "ulta-wfb/preview-uc4-workflow": "https://localhost:9080/api/v1/web/ulta-wfb/preview-uc4-workflow"
 }

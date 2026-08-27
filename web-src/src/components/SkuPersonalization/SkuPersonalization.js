@@ -2,11 +2,11 @@ import React, { useRef, useState } from 'react'
 import { View, Flex, Heading, Text, Button, ActionButton } from '@adobe/react-spectrum'
 import UndoIcon from '@spectrum-icons/workflow/Undo'
 import RedoIcon from '@spectrum-icons/workflow/Redo'
-import PsdDropzone from './PsdDropzone'
 import PsdList from './PsdList'
+import Uc4Workflow from './Uc4Workflow'
 import LayerCanvas from './LayerCanvas'
 import LayerList from './LayerList'
-import { uploadPsd, getPsdManifest, saveComposite } from '../../services/psdService'
+import { getPsdManifest, saveComposite } from '../../services/psdService'
 import { createHistory, historyState, pushHistory, undoHistory, redoHistory, canUndoHistory, canRedoHistory } from '../../utils/layerHistory'
 
 function SectionHeading ({ children }) {
@@ -23,7 +23,6 @@ function SectionHeading ({ children }) {
 export default function SkuPersonalization () {
   const [documents, setDocuments] = useState([])
   const [activeId, setActiveId] = useState(null)
-  const [dropError, setDropError] = useState(null)
   const nextIdRef = useRef(0)
   // Serializes the manifest+rendition step across documents — uploads (S3 PUTs)
   // still run in parallel below, but each getPsdManifest call already fires N
@@ -42,46 +41,53 @@ export default function SkuPersonalization () {
     setDocuments((prev) => prev.map((d) => (d.id === id ? { ...d, ...(typeof patch === 'function' ? patch(d) : patch) } : d)))
   }
 
-  async function loadDocument (id, file) {
+  // Shared by both entry points below (a locally-uploaded file, or a PSD url
+  // handed back by the UC4 workflow) — everything past "we have a presignedUrl"
+  // is identical either way.
+  async function loadManifestFor (id, presignedUrl) {
     try {
-      const uploaded = await uploadPsd(file)
-      updateDoc(id, { key: uploaded.key, presignedUrl: uploaded.presignedUrl, uploading: false, manifestLoading: true })
-
-      const run = manifestQueueRef.current.then(() => getPsdManifest(uploaded.presignedUrl))
+      updateDoc(id, { manifestLoading: true })
+      const run = manifestQueueRef.current.then(() => getPsdManifest(presignedUrl))
       manifestQueueRef.current = run.catch(() => {}) // keep the queue moving even if this one fails
       const { document: manifestDocument, layers } = await run
-
       updateDoc(id, { psdDocument: manifestDocument, history: createHistory(layers), manifestLoading: false })
     } catch (e) {
-      updateDoc(id, { uploading: false, manifestLoading: false, uploadError: e.message, manifestError: e.message })
+      updateDoc(id, { manifestLoading: false, manifestError: e.message })
     }
   }
 
-  function handleFilesSelected (files, rejectionMessage) {
-    setDropError(rejectionMessage)
-    for (const file of files) {
+  function newDocEntry (id, fileName, size) {
+    return {
+      id,
+      fileName,
+      size: size ?? null,
+      key: null,
+      presignedUrl: null,
+      uploading: false,
+      uploadError: null,
+      manifestLoading: false,
+      manifestError: null,
+      psdDocument: null,
+      history: null,
+      selectedId: null,
+      saving: false,
+      saveError: null,
+      downloadUrl: null,
+      downloaded: false
+    }
+  }
+
+  // Step 3 of the UC4 flow, and the only way a PSD enters `documents` now — no
+  // manual upload dropzone here anymore, PSDs only arrive as the workflow's own
+  // output (already hosted, no local file/upload involved). The existing
+  // resize/rotate/save editor below just works on them unchanged.
+  function handleWorkflowPsds (psds) {
+    for (const { url, name } of psds) {
       nextIdRef.current += 1
       const id = nextIdRef.current
-      setDocuments((prev) => [...prev, {
-        id,
-        fileName: file.name,
-        size: file.size,
-        key: null,
-        presignedUrl: null,
-        uploading: true,
-        uploadError: null,
-        manifestLoading: false,
-        manifestError: null,
-        psdDocument: null,
-        history: null,
-        selectedId: null,
-        saving: false,
-        saveError: null,
-        downloadUrl: null,
-        downloaded: false
-      }])
-      setActiveId((prev) => prev ?? id) // first document added becomes active automatically
-      loadDocument(id, file)
+      setDocuments((prev) => [...prev, { ...newDocEntry(id, name), presignedUrl: url }])
+      setActiveId((prev) => prev ?? id)
+      loadManifestFor(id, url)
     }
   }
 
@@ -125,8 +131,19 @@ export default function SkuPersonalization () {
     const id = activeDoc.id
     updateDoc(id, { saving: true, saveError: null })
     try {
-      const edits = historyState(activeDoc.history).map((l) => ({ id: l.id, bounds: l.bounds, visible: l.visible !== false }))
-      const { presignedUrl } = await saveComposite(activeDoc.key, edits)
+      // `type` (the manifest's layer type — smartObject, fillLayer, etc.) is
+      // needed by psd-composite to satisfy the Photoshop v2 API's discriminated
+      // edit-layer schema, which requires knowing what *kind* of layer this is
+      // in addition to what operation to apply to it. `name` is included
+      // because these layer `id`s came from a v1 manifest read, and v1/v2 are
+      // different pipelines under the hood — psd-composite targets edits by
+      // name instead, since a v1-sourced id may not resolve to anything in v2.
+      const edits = historyState(activeDoc.history).map((l) => ({ id: l.id, name: l.name, type: l.type, bounds: l.bounds, visible: l.visible !== false }))
+      // Locally-uploaded docs have their own S3 key (refreshed since presigned
+      // URLs expire); UC4 workflow-sourced docs don't — use their presignedUrl
+      // as-is (see saveComposite in services/psdService.js).
+      const source = activeDoc.key ? { key: activeDoc.key } : { presignedUrl: activeDoc.presignedUrl }
+      const { presignedUrl } = await saveComposite(source, edits)
       updateDoc(id, { downloadUrl: presignedUrl, downloaded: false, saving: false })
     } catch (e) {
       updateDoc(id, { saveError: e.message, saving: false })
@@ -144,24 +161,26 @@ export default function SkuPersonalization () {
       {/* Left column is just the PSD file list now — it grows as more files are
           uploaded, so LAYERS moved into the right/preview column (next to the
           canvas) instead of competing with it for the same shrinking sidebar. */}
-      <div className="ulta-grid" style={{ gridTemplateColumns: '260px 1fr' }}>
-        <div className="ulta-col">
+      <div className="ulta-grid" style={{ gridTemplateColumns: documents.length > 0 ? '260px 1fr' : '1fr' }}>
+        <div className="ulta-col" style={documents.length === 0 ? { maxWidth: 420, margin: '0 auto', width: '100%' } : undefined}>
           <View UNSAFE_className="ulta-fade-in">
             <Heading level={3} margin={0}>SKU Personalization</Heading>
             <Text UNSAFE_style={{ fontSize: 12, color: 'var(--spectrum-global-color-gray-600)' }}>
-              Drop PSD templates, then drag and resize their layers to build a composite.
+              Run the UC4 batch below, then drag and resize the resulting PSDs' layers to build a composite.
             </Text>
           </View>
 
-          <Flex direction="column" gap="size-75">
-            <SectionHeading>PSD FILES {documents.length > 0 && `(${documents.length})`}</SectionHeading>
-            <PsdDropzone onSelect={handleFilesSelected} />
-            {dropError && <Text UNSAFE_style={{ color: 'var(--spectrum-global-color-red-600)', fontSize: 12 }}>{dropError}</Text>}
-            <PsdList documents={documents} activeId={activeId} onSelect={setActiveId} onRemove={handleRemoveDoc} />
-            {activeDoc?.uploadError && <Text UNSAFE_style={{ color: 'var(--spectrum-global-color-red-600)', fontSize: 12 }}>{activeDoc.uploadError}</Text>}
-          </Flex>
+          <Uc4Workflow onOutputPsds={handleWorkflowPsds} />
+
+          {documents.length > 0 && (
+            <Flex direction="column" gap="size-75">
+              <SectionHeading>PSD FILES ({documents.length})</SectionHeading>
+              <PsdList documents={documents} activeId={activeId} onSelect={setActiveId} onRemove={handleRemoveDoc} />
+            </Flex>
+          )}
         </div>
 
+        {documents.length > 0 && (
         <div className="ulta-col">
           <Flex direction="row" justifyContent="space-between" alignItems="center">
             <SectionHeading>PREVIEW</SectionHeading>
@@ -263,6 +282,7 @@ export default function SkuPersonalization () {
             </View>
           </Flex>
         </div>
+        )}
       </div>
     </div>
   )

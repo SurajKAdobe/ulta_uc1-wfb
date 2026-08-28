@@ -10,6 +10,7 @@ export const OUTPUT_PNG_NODE_ID = 'node_1786459217842_jgd5pehin_17_vwzopc'
 
 // UC4 batch workflow — output PSD node id(s) to pull from a completed batch's
 // status response (see extractUc4OutputPsds in services/uc4WorkflowService.js).
-// TODO(uc4-workflow): placeholder until the real Workflow Builder graph is
-// finalized — fill in once known.
-export const UC4_OUTPUT_PSD_NODE_IDS = []
+// The merge-PSD node (mimeType image/vnd.adobe.photoshop, name "result") —
+// not node_1787835824857_zfxuosalx_1_6c8vo6, which is just the input
+// template echoed back in outputs[], not the merged result.
+export const UC4_OUTPUT_PSD_NODE_IDS = ['node_1787843874081_zpybqfouc_8_603n3t']

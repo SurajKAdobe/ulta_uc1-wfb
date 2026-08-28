@@ -138,7 +138,15 @@ export default function SkuPersonalization () {
       // because these layer `id`s came from a v1 manifest read, and v1/v2 are
       // different pipelines under the hood — psd-composite targets edits by
       // name instead, since a v1-sourced id may not resolve to anything in v2.
-      const edits = historyState(activeDoc.history).map((l) => ({ id: l.id, name: l.name, type: l.type, bounds: l.bounds, visible: l.visible !== false }))
+      // Group ("layerSection") layers are excluded here the same way LayerCanvas
+      // excludes them from rendering/dragging (see LayerCanvas.js) — their v1
+      // manifest bounds are just the bounding box of their children, not a real
+      // tracked position, and resending that as an explicit v2 custom transform
+      // on a group_layer collapses/mispositions the whole group (and everything
+      // nested inside it) into a blank/transparent result.
+      const edits = historyState(activeDoc.history)
+        .filter((l) => l.type !== 'layerSection')
+        .map((l) => ({ id: l.id, name: l.name, type: l.type, bounds: l.bounds, visible: l.visible !== false }))
       // Locally-uploaded docs have their own S3 key (refreshed since presigned
       // URLs expire); UC4 workflow-sourced docs don't — use their presignedUrl
       // as-is (see saveComposite in services/psdService.js).

@@ -191,7 +191,7 @@ application:
             limits:
               timeout: 300000
             inputs:
-              LOG_LEVEL: info
+              LOG_LEVEL: $LOG_LEVEL
               API_KEY: $API_KEY
               IMS_OAUTH_S2S_CLIENT_ID: $IMS_OAUTH_S2S_CLIENT_ID
               IMS_OAUTH_S2S_CLIENT_SECRET: $IMS_OAUTH_S2S_CLIENT_SECRET
@@ -219,24 +219,15 @@ application:
               IMS_OAUTH_S2S_SCOPES: $IMS_OAUTH_S2S_SCOPES
               UC4_WORKFLOW_ID: $UC4_WORKFLOW_ID
               UC4_INPUT_IMAGE_NODE_ID: $UC4_INPUT_IMAGE_NODE_ID
-              UC4_INPUT_SKU_FILES_NODE_ID: $UC4_INPUT_SKU_FILES_NODE_ID
               UC4_INPUT_ROW_IMAGE_NODE_ID: $UC4_INPUT_ROW_IMAGE_NODE_ID
-              UC4_INPUT_TEXT_NODE_ID: $UC4_INPUT_TEXT_NODE_ID
-              # Needed to re-host each row's per-SKU product images in our own S3
-              # (Workflow Builder needs a presigned S3 URL, not an arbitrary
-              # external one) — same presign proxy as presign-upload.
-              S3_PRESIGN_URL: $S3_PRESIGN_URL
-              S3_ACCESS_KEY: $S3_ACCESS_KEY
-              S3_SECRET_KEY: $S3_SECRET_KEY
-              S3_BUCKET: $S3_BUCKET
-              S3_REGION: $S3_REGION
+              UC4_INPUT_SKU_URLS_NODE_ID: $UC4_INPUT_SKU_URLS_NODE_ID
+              UC4_INPUT_COLOR_NODE_ID: $UC4_INPUT_COLOR_NODE_ID
             annotations:
               require-adobe-auth: false
               final: true
 
           # Display-only mirror of execute-uc4-workflow's request shape — never
-          # calls Workflow Builder, and skips the per-SKU image re-hosting (see
-          # actions/preview-uc4-workflow/index.js) so it's instant and free.
+          # calls Workflow Builder, instant and free (no files to re-host).
           preview-uc4-workflow:
             function: actions/preview-uc4-workflow/index.js
             web: 'yes'
@@ -245,9 +236,9 @@ application:
               LOG_LEVEL: info
               UC4_WORKFLOW_ID: $UC4_WORKFLOW_ID
               UC4_INPUT_IMAGE_NODE_ID: $UC4_INPUT_IMAGE_NODE_ID
-              UC4_INPUT_SKU_FILES_NODE_ID: $UC4_INPUT_SKU_FILES_NODE_ID
               UC4_INPUT_ROW_IMAGE_NODE_ID: $UC4_INPUT_ROW_IMAGE_NODE_ID
-              UC4_INPUT_TEXT_NODE_ID: $UC4_INPUT_TEXT_NODE_ID
+              UC4_INPUT_SKU_URLS_NODE_ID: $UC4_INPUT_SKU_URLS_NODE_ID
+              UC4_INPUT_COLOR_NODE_ID: $UC4_INPUT_COLOR_NODE_ID
             annotations:
               require-adobe-auth: false
               final: true

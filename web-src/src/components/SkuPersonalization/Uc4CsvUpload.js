@@ -1,8 +1,9 @@
 import React, { useRef, useState } from 'react'
-import { View, Flex, Text, ActionButton, ProgressCircle } from '@adobe/react-spectrum'
+import { View, Flex, Text, ActionButton, ProgressCircle, DialogTrigger, Dialog, Heading, Divider, Content, ButtonGroup, Button } from '@adobe/react-spectrum'
 import Close from '@spectrum-icons/workflow/Close'
 import ChevronDown from '@spectrum-icons/workflow/ChevronDown'
 import ChevronUp from '@spectrum-icons/workflow/ChevronUp'
+import Maximize from '@spectrum-icons/workflow/Maximize'
 import { formatSize } from '../CsvUpload/CsvUpload'
 
 // CsvUpload.js's multi-column table preview is built for SkuCompilation's much
@@ -84,12 +85,52 @@ export default function Uc4CsvUpload ({ value, isUploading, error, disabled, onS
               {formatSize(value.size)} · {value.recordCount} records
             </Text>
             {value.previewRows?.length > 0 && (
-              <ActionButton isQuiet onPress={() => setShowPreview((v) => !v)} UNSAFE_style={{ minWidth: 0, height: 22 }}>
-                <Flex gap="size-50" alignItems="center">
-                  {showPreview ? <ChevronUp size="XS" /> : <ChevronDown size="XS" />}
-                  <Text UNSAFE_style={{ fontSize: 11 }}>Preview</Text>
-                </Flex>
-              </ActionButton>
+              <Flex gap="size-50" alignItems="center">
+                <DialogTrigger type="modal">
+                  <ActionButton isQuiet aria-label="View full CSV" UNSAFE_style={{ minWidth: 0, width: 22, height: 22 }}>
+                    <Maximize size="XS" />
+                  </ActionButton>
+                  {(close) => (
+                    <Dialog size="L">
+                      <Heading>{value.fileName}</Heading>
+                      <Divider />
+                      <Content>
+                        <div style={{ maxHeight: '60vh', overflow: 'auto', border: '1px solid var(--spectrum-global-color-gray-200)', borderRadius: 4 }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                            <thead>
+                              <tr>
+                                <th style={{ position: 'sticky', top: 0, background: 'var(--spectrum-global-color-gray-100)', padding: '6px 8px', textAlign: 'left' }}>#</th>
+                                {value.headers.map((h, i) => (
+                                  <th key={i} style={{ position: 'sticky', top: 0, background: 'var(--spectrum-global-color-gray-100)', padding: '6px 8px', textAlign: 'left', whiteSpace: 'nowrap' }}>
+                                    {h}
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {value.previewRows.map((row, ri) => (
+                                <tr key={ri} style={{ borderTop: '1px solid var(--spectrum-global-color-gray-200)' }}>
+                                  <td style={{ padding: '6px 8px', color: 'var(--spectrum-global-color-gray-600)' }}>{ri + 1}</td>
+                                  {row.map((cell, ci) => <td key={ci} style={{ padding: '6px 8px' }}>{cell}</td>)}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </Content>
+                      <ButtonGroup>
+                        <Button variant="secondary" onPress={close}>Close</Button>
+                      </ButtonGroup>
+                    </Dialog>
+                  )}
+                </DialogTrigger>
+                <ActionButton isQuiet onPress={() => setShowPreview((v) => !v)} UNSAFE_style={{ minWidth: 0, height: 22 }}>
+                  <Flex gap="size-50" alignItems="center">
+                    {showPreview ? <ChevronUp size="XS" /> : <ChevronDown size="XS" />}
+                    <Text UNSAFE_style={{ fontSize: 11 }}>Preview</Text>
+                  </Flex>
+                </ActionButton>
+              </Flex>
             )}
           </Flex>
 

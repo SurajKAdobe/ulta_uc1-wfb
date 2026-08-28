@@ -61,6 +61,15 @@ async function main (params) {
           // transformMode 'custom' is required for an explicit transform block
           // to take effect at all — otherwise it's rejected outright.
           transformMode: 'custom',
+          // ponytail: tried adding an explicit `anchor` field to pin rotation to
+          // each layer's center (matching LayerCanvas's CSS-default center pivot)
+          // — the API 400s on it ("invalid fields: anchor"), so this endpoint
+          // doesn't support that field at all (at least not at this level).
+          // Reverted to offset = top-left, no anchor, which is what actually
+          // works; the rotation-alignment drift the user saw is unresolved —
+          // revisit once there's evidence of what pivot point the API itself
+          // uses by default (e.g. a real create-composite response/rendition
+          // to compare against, rather than another blind schema guess).
           transform: {
             offset: { horizontal: bounds.left, vertical: bounds.top },
             dimension: { width: bounds.width, height: bounds.height },

@@ -1,9 +1,6 @@
 const { ok, badRequest } = require('../libs/http')
 
-// Same column indices as execute-uc4-workflow/index.js.
-const COL = { offerName: 0, skus: 1, status: 2, imageUrl: 3, template: 4 }
-
-const WHITE_HEX = '#FFFFFF'
+const DEFAULT_COLOR_HEX = '#FFFFFF'
 const PRODUCT_IMAGE_URL = (sku) => `https://media.ultainc.com/i/ulta/${sku}`
 
 function parseSkus (cell) {
@@ -13,9 +10,9 @@ function parseSkus (cell) {
 // Preview-only — never calls Workflow Builder. Mirrors execute-uc4-workflow's
 // payload exactly — it's all synchronous data mapping now that node 4 is a
 // plain comma-separated text field, no per-SKU file re-hosting to fake here.
-function buildPreviewInputs (rows, backgroundImagePresignedUrl, templatePsdPresignedUrl, params) {
+function buildPreviewInputs (rows, skuColumnIndex, backgroundImagePresignedUrl, templatePsdPresignedUrl, colorHex, params) {
   return rows.map((row) => {
-    const skuUrls = parseSkus(row[COL.skus]).map(PRODUCT_IMAGE_URL).join(',')
+    const skuUrls = parseSkus(row[skuColumnIndex]).map(PRODUCT_IMAGE_URL).join(',')
 
     return [
       { node_id: params.UC4_INPUT_IMAGE_NODE_ID, content: { presignedUrl: templatePsdPresignedUrl || '{presigned_url}', storageType: 'AWS' } },
@@ -23,17 +20,18 @@ function buildPreviewInputs (rows, backgroundImagePresignedUrl, templatePsdPresi
         node_id: params.UC4_INPUT_ROW_IMAGE_NODE_ID,
         content: [{ presignedUrl: backgroundImagePresignedUrl || '{presigned_url}', name: 'background image', storageType: 'AWS' }]
       },
-      { node_id: params.UC4_INPUT_COLOR_NODE_ID, content: WHITE_HEX },
+      { node_id: params.UC4_INPUT_COLOR_NODE_ID, content: colorHex || DEFAULT_COLOR_HEX },
       { node_id: params.UC4_INPUT_SKU_URLS_NODE_ID, content: skuUrls }
     ]
   })
 }
 
 async function main (params) {
-  const { rows, backgroundImagePresignedUrl, templatePsdPresignedUrl } = params
+  const { rows, skuColumnIndex, backgroundImagePresignedUrl, templatePsdPresignedUrl, colorHex } = params
   if (!Array.isArray(rows) || rows.length === 0) return badRequest('rows must be a non-empty array of CSV records')
+  if (typeof skuColumnIndex !== 'number' || skuColumnIndex < 0) return badRequest('skuColumnIndex is required')
 
-  const inputs = buildPreviewInputs(rows, backgroundImagePresignedUrl, templatePsdPresignedUrl, params)
+  const inputs = buildPreviewInputs(rows, skuColumnIndex, backgroundImagePresignedUrl, templatePsdPresignedUrl, colorHex, params)
 
   return ok({
     ok: true,

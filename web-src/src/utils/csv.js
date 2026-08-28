@@ -35,8 +35,11 @@ const WORKFLOW_ROW_COLUMNS = {
   templateSize: 'Firefly | Template'
 }
 
+// Collapses whitespace around "|" too (e.g. "Image | Sku" and "Image|Sku" both
+// normalize the same way) — applied to both sides of every comparison here, so
+// it's a no-op for headers that don't use "|" at all.
 function normalizeHeader (h) {
-  return h.trim().toLowerCase()
+  return h.trim().toLowerCase().replace(/\s*\|\s*/g, '|')
 }
 
 function buildColumnIndex (headers) {
@@ -75,18 +78,35 @@ export function parseCsvRows (text) {
   return { headers, rows, missingColumns }
 }
 
-// UC4's input CSV (e.g. UC4_input.csv) has no header row at all — every line is
-// data. Synthesizes "Column N" headers (for CsvUpload's preview table) instead
-// of assuming row 1 is a header like parseCsv/parseCsvRows do for UC1. Field
-// semantics (which column is what) aren't mapped here — that's tied to the UC4
-// workflow's own input node ids, which aren't finalized yet (see
-// actions/execute-uc4-workflow/index.js).
+// UC4's input CSV now has a real header row (row 1) — unlike UC1's fixed known
+// header names (WORKFLOW_ROW_COLUMNS above), UC4's exact header text isn't
+// pinned down to us, so columns are located by a flexible, case-insensitive
+// alias match instead of one exact literal string. Confirmed against a real
+// sample (UC4_3_input.csv): the SKU list lives in one column literally named
+// "Image | Sku" (not two separate "Image" and "SKU" columns).
+const UC4_SKU_ALIASES = ['image|sku', 'sku', 'skus', "sku's", 'sku id', 'sku ids']
+const UC4_NAME_ALIASES = ['name', 'offer name', 'offer', 'title']
+
+function findUc4ColumnIndex (headers, aliases) {
+  return headers.findIndex(h => aliases.includes(normalizeHeader(h)))
+}
+
 export function parseUc4Csv (text) {
   const lines = text.split(/\r\n|\r|\n/).filter(line => line.trim().length > 0)
-  const rows = lines.map(splitCsvLine).filter(cells => cells.some(c => c !== ''))
-  const columnCount = rows.reduce((max, r) => Math.max(max, r.length), 0)
-  const headers = Array.from({ length: columnCount }, (_, i) => `Column ${i + 1}`)
-  return { headers, rows, recordCount: rows.length }
+  if (lines.length === 0) {
+    return { headers: [], rows: [], recordCount: 0, skuIndex: -1, nameIndex: -1, missingColumns: ['Image | Sku'] }
+  }
+
+  const headers = splitCsvLine(lines[0])
+  const skuIndex = findUc4ColumnIndex(headers, UC4_SKU_ALIASES)
+  const nameIndex = findUc4ColumnIndex(headers, UC4_NAME_ALIASES)
+  const missingColumns = skuIndex === -1 ? ['Image | Sku'] : []
+
+  // Drops rows that are all-empty-cells — CSV exports (confirmed in a real
+  // sample) sometimes leave a trailing line of bare commas, which the line
+  // filter above lets through since it's non-empty text, just all commas.
+  const rows = lines.slice(1).map(splitCsvLine).filter(cells => cells.some(c => c !== ''))
+  return { headers, rows, recordCount: rows.length, skuIndex, nameIndex, missingColumns }
 }
 
 // Returns every data row (CsvUpload paginates client-side rather than this

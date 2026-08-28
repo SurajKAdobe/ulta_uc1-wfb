@@ -3,9 +3,9 @@ import { Text, ActionButton } from '@adobe/react-spectrum'
 import Visibility from '@spectrum-icons/workflow/Visibility'
 import VisibilityOff from '@spectrum-icons/workflow/VisibilityOff'
 
-export default function LayerList ({ layers, selectedId, onSelect, onToggleVisible }) {
+export default function LayerList ({ layers, selectedId, onSelect, onToggleVisible, disabled }) {
   return (
-    <div style={{ maxHeight: 560, overflowY: 'auto' }}>
+    <div className="ulta-busy" data-disabled={disabled ? 'true' : 'false'} style={{ maxHeight: 560, overflowY: 'auto' }}>
       {layers.map((layer) => {
         const isGroup = layer.type === 'layerSection'
         const isSelected = selectedId === layer.id
@@ -14,14 +14,14 @@ export default function LayerList ({ layers, selectedId, onSelect, onToggleVisib
         return (
           <div
             key={layer.id}
-            onClick={() => onSelect(layer.id)}
+            onClick={() => !disabled && onSelect(layer.id)}
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: 6,
               padding: '5px 6px',
               paddingLeft: 6 + layer.depth * 14,
-              cursor: 'pointer',
+              cursor: disabled ? 'default' : 'pointer',
               borderRadius: 6,
               marginTop: isGroup && layer.depth === 0 ? 6 : 0,
               backgroundColor: isSelected ? 'var(--ulta-accent-soft)' : 'transparent',
@@ -33,6 +33,7 @@ export default function LayerList ({ layers, selectedId, onSelect, onToggleVisib
             {!isGroup && (
               <ActionButton
                 isQuiet
+                isDisabled={disabled}
                 onPress={() => onToggleVisible(layer.id)}
                 onPointerDown={(e) => e.stopPropagation()}
                 aria-label={isVisible ? `Hide ${layer.name}` : `Show ${layer.name}`}

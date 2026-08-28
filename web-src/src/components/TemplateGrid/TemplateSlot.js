@@ -27,7 +27,7 @@ export default function TemplateSlot ({ label, value, isUploading, error, disabl
         border: `1px dashed ${error ? 'var(--spectrum-global-color-red-400)' : isDragOver ? 'var(--ulta-accent)' : 'var(--spectrum-global-color-gray-300)'}`,
         borderRadius: 4,
         padding: 'var(--spectrum-global-dimension-size-150, 12px)',
-        backgroundColor: isDragOver ? 'var(--ulta-accent-soft)' : 'var(--spectrum-global-color-gray-50)',
+        backgroundColor: isDragOver ? 'var(--ulta-accent-soft)' : 'var(--spectrum-global-color-gray-75)',
         textAlign: 'center',
         cursor: disabled ? 'default' : 'pointer',
         minHeight: 68,

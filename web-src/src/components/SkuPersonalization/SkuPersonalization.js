@@ -23,6 +23,7 @@ function SectionHeading ({ children }) {
 export default function SkuPersonalization () {
   const [documents, setDocuments] = useState([])
   const [activeId, setActiveId] = useState(null)
+  const [uc4Running, setUc4Running] = useState(false)
   const nextIdRef = useRef(0)
   // Serializes the manifest+rendition step across documents — uploads (S3 PUTs)
   // still run in parallel below, but each getPsdManifest call already fires N
@@ -170,7 +171,10 @@ export default function SkuPersonalization () {
           uploaded, so LAYERS moved into the right/preview column (next to the
           canvas) instead of competing with it for the same shrinking sidebar. */}
       <div className="ulta-grid" style={{ gridTemplateColumns: documents.length > 0 ? '260px 1fr' : '1fr' }}>
-        <div className="ulta-col" style={documents.length === 0 ? { maxWidth: 420, margin: '0 auto', width: '100%' } : undefined}>
+        <div
+          className="ulta-col"
+          style={documents.length === 0 ? { maxWidth: uc4Running ? 860 : 420, margin: '0 auto', width: '100%', transition: 'max-width 0.3s ease' } : undefined}
+        >
           <View UNSAFE_className="ulta-fade-in">
             <Heading level={3} margin={0}>SKU Personalization</Heading>
             <Text UNSAFE_style={{ fontSize: 12, color: 'var(--spectrum-global-color-gray-600)' }}>
@@ -178,7 +182,7 @@ export default function SkuPersonalization () {
             </Text>
           </View>
 
-          <Uc4Workflow onOutputPsds={handleWorkflowPsds} />
+          <Uc4Workflow onOutputPsds={handleWorkflowPsds} onRunningChange={setUc4Running} />
 
           {documents.length > 0 && (
             <Flex direction="column" gap="size-75">
@@ -195,14 +199,20 @@ export default function SkuPersonalization () {
             {hasDocument && (
               <Flex gap="size-100" alignItems="center">
                 <Flex gap="size-50">
-                  <ActionButton isQuiet isDisabled={!canUndoHistory(activeDoc.history)} onPress={handleUndo} aria-label="Undo">
+                  <ActionButton isQuiet isDisabled={activeDoc.saving || !canUndoHistory(activeDoc.history)} onPress={handleUndo} aria-label="Undo">
                     <UndoIcon size="S" />
                   </ActionButton>
-                  <ActionButton isQuiet isDisabled={!canRedoHistory(activeDoc.history)} onPress={handleRedo} aria-label="Redo">
+                  <ActionButton isQuiet isDisabled={activeDoc.saving || !canRedoHistory(activeDoc.history)} onPress={handleRedo} aria-label="Redo">
                     <RedoIcon size="S" />
                   </ActionButton>
                 </Flex>
-                <Button variant="accent" UNSAFE_style={{ backgroundColor: 'var(--ulta-accent)' }} isDisabled={activeDoc.saving} onPress={handleSave}>
+                <Button
+                  variant="accent"
+                  UNSAFE_style={{ backgroundColor: 'var(--ulta-accent)' }}
+                  UNSAFE_className={`ulta-execute-btn${activeDoc.saving ? ' ulta-executing' : ''}`}
+                  isDisabled={activeDoc.saving}
+                  onPress={handleSave}
+                >
                   <Flex gap="size-100" alignItems="center">
                     {activeDoc.saving && <span className="ulta-spinner" aria-hidden="true" />}
                     <Text>{activeDoc.saving ? 'Saving...' : 'Save Composite'}</Text>
@@ -229,6 +239,7 @@ export default function SkuPersonalization () {
                         selectedId={activeDoc.selectedId}
                         onSelect={(layerId) => updateDoc(activeDoc.id, { selectedId: layerId })}
                         onToggleVisible={(layerId) => handleToggleVisible(activeDoc.id, layerId)}
+                        disabled={activeDoc.saving}
                       />
                       )
                     : (
@@ -273,6 +284,9 @@ export default function SkuPersonalization () {
                   style={{
                     position: 'absolute',
                     inset: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                     visibility: doc.id === activeId ? 'visible' : 'hidden',
                     pointerEvents: doc.id === activeId ? 'auto' : 'none'
                   }}

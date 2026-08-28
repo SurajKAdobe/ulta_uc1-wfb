@@ -32,7 +32,7 @@ export default function Uc4ImageUpload ({ value, isUploading, error, disabled, o
             border: `1px dashed ${isDragOver ? 'var(--ulta-accent)' : 'var(--spectrum-global-color-gray-300)'}`,
             borderRadius: 'var(--spectrum-alias-border-radius-regular, 4px)',
             padding: 'var(--spectrum-global-dimension-size-200, 16px)',
-            backgroundColor: isDragOver ? 'var(--ulta-accent-soft)' : 'var(--spectrum-global-color-gray-50)',
+            backgroundColor: isDragOver ? 'var(--ulta-accent-soft)' : 'var(--spectrum-global-color-gray-75)',
             textAlign: 'center',
             cursor: disabled ? 'default' : 'pointer',
             transition: 'background-color 0.2s ease, border-color 0.2s ease'
@@ -62,12 +62,12 @@ export default function Uc4ImageUpload ({ value, isUploading, error, disabled, o
 
       {value && (
         <View borderWidth="thin" borderColor="gray-300" borderRadius="medium" padding="size-100" UNSAFE_className="ulta-fade-in">
-          <Flex alignItems="center" gap="size-100">
-            <img
-              src={value.previewUrl}
-              alt=""
-              style={{ width: 32, height: 32, objectFit: 'cover', borderRadius: 4, flexShrink: 0 }}
-            />
+          <img
+            src={value.previewUrl}
+            alt=""
+            style={{ width: '100%', height: 140, objectFit: 'contain', borderRadius: 4, background: 'var(--spectrum-global-color-gray-100)', display: 'block' }}
+          />
+          <Flex alignItems="center" gap="size-100" marginTop="size-100">
             <Text UNSAFE_style={{ fontWeight: 600, fontSize: 13, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               ✓ {value.fileName}
             </Text>

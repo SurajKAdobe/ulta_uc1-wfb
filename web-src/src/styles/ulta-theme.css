@@ -2,6 +2,23 @@
   /* Sampled from web-src/ulta_logo.png */
   --ulta-accent: #F47C39;
   --ulta-accent-soft: #FDEEE4;
+  --ulta-skeleton-highlight: rgba(255, 255, 255, 0.7);
+}
+
+/* [data-theme="dark"] is set on <html> in App.js (our own attribute, not
+   Spectrum's internal hashed CSS-module dark class, which isn't safe to
+   target directly) — deliberately on <html>, not a wrapper div, since
+   Spectrum's Dialog/Popover/Menu portal to document.body, a *sibling* of any
+   div we control; only an <html>-level attribute reaches that portaled
+   content too. --ulta-accent-soft was a solid light peach designed to sit on
+   a light background; on a dark one it read as a jarring bright patch with
+   washed-out text (this is what showed up as a hover/selected-row color bug
+   inside CSV preview popups specifically — those render through the portal).
+   Same story for the skeleton shimmer's white highlight, too bright against
+   dark skeleton boxes. */
+[data-theme="dark"] {
+  --ulta-accent-soft: rgba(244, 124, 57, 0.22);
+  --ulta-skeleton-highlight: rgba(255, 255, 255, 0.12);
 }
 
 html, body, #root {
@@ -43,6 +60,9 @@ body {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  /* Without this, scrollable content butts right up against the scrollbar
+     track — this keeps a breathing gap between them. */
+  padding-right: 10px;
 }
 
 @media (max-width: 900px) {
@@ -122,7 +142,7 @@ body {
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+  background: linear-gradient(90deg, transparent, var(--ulta-skeleton-highlight), transparent);
   animation: ulta-skeleton-sweep 1.4s ease-in-out infinite;
 }
 
@@ -398,4 +418,55 @@ body {
 
 .ulta-copy-btn:active {
   transform: scale(0.95);
+}
+
+.ulta-stepper-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--spectrum-global-color-gray-300);
+  background: var(--spectrum-global-color-gray-75);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.ulta-stepper-icon[data-state="active"] {
+  border-color: var(--ulta-accent);
+  background: var(--ulta-accent);
+}
+
+.ulta-stepper-icon[data-state="done"] {
+  border-color: var(--ulta-accent);
+  background: var(--ulta-accent);
+}
+
+.ulta-stepper-icon[data-state="error"] {
+  border-color: var(--spectrum-global-color-red-600);
+  background: var(--spectrum-global-color-red-600);
+}
+
+.ulta-stepper-line {
+  width: 2px;
+  flex: 1;
+  min-height: 20px;
+  background: var(--spectrum-global-color-gray-300);
+  position: relative;
+  overflow: hidden;
+}
+
+.ulta-stepper-line::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--ulta-accent);
+  transform: scaleY(0);
+  transform-origin: top;
+  transition: transform 0.4s ease;
+}
+
+.ulta-stepper-line[data-filled="true"]::after {
+  transform: scaleY(1);
 }

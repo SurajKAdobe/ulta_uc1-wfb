@@ -5,6 +5,7 @@ import ChevronDown from '@spectrum-icons/workflow/ChevronDown'
 import ChevronUp from '@spectrum-icons/workflow/ChevronUp'
 import Maximize from '@spectrum-icons/workflow/Maximize'
 import { formatSize } from '../CsvUpload/CsvUpload'
+import CsvPreviewTable from '../CsvUpload/CsvPreviewTable'
 
 // CsvUpload.js's multi-column table preview is built for SkuCompilation's much
 // wider column — crammed into this 260px sidebar it just overflows/scrolls
@@ -39,7 +40,7 @@ export default function Uc4CsvUpload ({ value, isUploading, error, disabled, onS
             border: `1px dashed ${isDragOver ? 'var(--ulta-accent)' : 'var(--spectrum-global-color-gray-300)'}`,
             borderRadius: 'var(--spectrum-alias-border-radius-regular, 4px)',
             padding: 'var(--spectrum-global-dimension-size-200, 16px)',
-            backgroundColor: isDragOver ? 'var(--ulta-accent-soft)' : 'var(--spectrum-global-color-gray-50)',
+            backgroundColor: isDragOver ? 'var(--ulta-accent-soft)' : 'var(--spectrum-global-color-gray-75)',
             textAlign: 'center',
             cursor: disabled ? 'default' : 'pointer',
             transition: 'background-color 0.2s ease, border-color 0.2s ease'
@@ -95,28 +96,12 @@ export default function Uc4CsvUpload ({ value, isUploading, error, disabled, onS
                       <Heading>{value.fileName}</Heading>
                       <Divider />
                       <Content>
-                        <div style={{ maxHeight: '60vh', overflow: 'auto', border: '1px solid var(--spectrum-global-color-gray-200)', borderRadius: 4 }}>
-                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                            <thead>
-                              <tr>
-                                <th style={{ position: 'sticky', top: 0, background: 'var(--spectrum-global-color-gray-100)', padding: '6px 8px', textAlign: 'left' }}>#</th>
-                                {value.headers.map((h, i) => (
-                                  <th key={i} style={{ position: 'sticky', top: 0, background: 'var(--spectrum-global-color-gray-100)', padding: '6px 8px', textAlign: 'left', whiteSpace: 'nowrap' }}>
-                                    {h}
-                                  </th>
-                                ))}
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {value.previewRows.map((row, ri) => (
-                                <tr key={ri} style={{ borderTop: '1px solid var(--spectrum-global-color-gray-200)' }}>
-                                  <td style={{ padding: '6px 8px', color: 'var(--spectrum-global-color-gray-600)' }}>{ri + 1}</td>
-                                  {row.map((cell, ci) => <td key={ci} style={{ padding: '6px 8px' }}>{cell}</td>)}
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
+                        <CsvPreviewTable
+                          headers={value.headers}
+                          rows={value.previewRows}
+                          resetKey={`${value.fileName}-${value.size}`}
+                          maxHeight="60vh"
+                        />
                       </Content>
                       <ButtonGroup>
                         <Button variant="secondary" onPress={close}>Close</Button>

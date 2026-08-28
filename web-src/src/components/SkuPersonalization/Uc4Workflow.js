@@ -1,9 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Flex, Heading, Text, Button } from '@adobe/react-spectrum'
+import { Flex, Heading, Text, Button, View, ActionButton } from '@adobe/react-spectrum'
+import ChevronUp from '@spectrum-icons/workflow/ChevronUp'
+import ChevronDown from '@spectrum-icons/workflow/ChevronDown'
 import Uc4CsvUpload from './Uc4CsvUpload'
 import Uc4ImageUpload from './Uc4ImageUpload'
 import Uc4PsdUpload from './Uc4PsdUpload'
+import Uc4ColorPicker from './Uc4ColorPicker'
 import Uc4CurlPreview from './Uc4CurlPreview'
+import Uc4WorkflowStepper from './Uc4WorkflowStepper'
 import { readUc4CsvPreview } from '../../services/csvService'
 import { uploadFile } from '../../services/uploadService'
 import { runUc4Workflow, extractUc4OutputPsds } from '../../services/uc4WorkflowService'
@@ -27,10 +31,10 @@ function SectionHeading ({ children }) {
 // execute-uc4-workflow/index.js): this uploaded template PSD, per-SKU product
 // images (derived from Ulta's product image CDN), this uploaded background
 // image (reused for every row — the CSV's own image-url column points at a
-// protected asset our backend can't fetch), and a hardcoded white color. Batch
-// submit/poll/extract is real and already wired to the same run-workflow.adobe.io
-// platform UC1 uses.
-export default function Uc4Workflow ({ onOutputPsds }) {
+// protected asset our backend can't fetch), and this picked color (white by
+// default). Batch submit/poll/extract is real and already wired to the same
+// run-workflow.adobe.io platform UC1 uses.
+export default function Uc4Workflow ({ onOutputPsds, onRunningChange }) {
   const [csv, setCsv] = useState(null)
   const [csvUploading, setCsvUploading] = useState(false)
   const [csvError, setCsvError] = useState(null)
@@ -43,12 +47,25 @@ export default function Uc4Workflow ({ onOutputPsds }) {
   const [imageUploading, setImageUploading] = useState(false)
   const [imageError, setImageError] = useState(null)
 
+  const [colorHex, setColorHex] = useState('#FFFFFF')
+
   const [running, setRunning] = useState(false)
   const [runError, setRunError] = useState(null)
   const [batchId, setBatchId] = useState(null)
+  const [status, setStatus] = useState(null)
+  const [failed, setFailed] = useState(false)
+  // Auto-collapses once a batch succeeds and the PSD editor takes over — the
+  // upload details just add clutter at that point. Still manually reopenable
+  // (e.g. to tweak inputs and run again).
+  const [collapsed, setCollapsed] = useState(false)
+  // Real timestamps for the stepper's live per-step timers — not estimates.
+  const [timestamps, setTimestamps] = useState({ start: null, submitDone: null, processDone: null })
 
   const pollTimerRef = useRef(null)
   useEffect(() => () => clearTimeout(pollTimerRef.current), [])
+  // Mirrors showStepper below (widened while running or on failure; back to
+  // normal once a batch succeeds and the PSD editor takes over).
+  useEffect(() => { onRunningChange?.(running || failed) }, [running, failed]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleCsvSelect (file, validationError) {
     if (validationError) {
@@ -58,16 +75,23 @@ export default function Uc4Workflow ({ onOutputPsds }) {
     setCsvError(null)
     setCsvUploading(true)
     try {
-      // UC4's CSV has no header row — every row is data, and columns are passed
-      // through positionally as-is (see readUc4CsvPreview / parseUc4Csv).
+      // UC4's CSV now has a header row — Image and SKU columns are required
+      // (located by flexible alias match, see parseUc4Csv), everything else is
+      // passed through as-is.
       const preview = await readUc4CsvPreview(file)
+      if (preview.missingColumns.length > 0) {
+        setCsvError(`CSV is missing required column(s): ${preview.missingColumns.join(', ')}`)
+        return
+      }
       setCsv({
         fileName: file.name,
         size: file.size,
         recordCount: preview.recordCount,
         headers: preview.headers,
         previewRows: preview.rows,
-        rows: preview.rows
+        rows: preview.rows,
+        skuIndex: preview.skuIndex,
+        nameIndex: preview.nameIndex
       })
     } catch (e) {
       setCsvError(e.message)
@@ -113,26 +137,34 @@ export default function Uc4Workflow ({ onOutputPsds }) {
   function pollStatus (id) {
     pollTimerRef.current = setTimeout(async () => {
       try {
-        const status = await checkWorkflowStatus(id)
-        if (!isTerminalStatus(status)) {
+        const latestStatus = await checkWorkflowStatus(id)
+        setStatus(latestStatus)
+        if (!isTerminalStatus(latestStatus)) {
           pollStatus(id)
           return
         }
-        if (isFailedStatus(status)) {
+        if (isFailedStatus(latestStatus)) {
           setRunError('The UC4 workflow batch finished with a failed status.')
+          setFailed(true)
           setRunning(false)
+          setTimestamps((t) => ({ ...t, processDone: Date.now() }))
           return
         }
-        const psds = extractUc4OutputPsds(status)
+        const psds = extractUc4OutputPsds(latestStatus, { rows: csv.rows, nameIndex: csv.nameIndex })
         if (psds.length === 0) {
           setRunError('The workflow completed, but no output PSDs were found — UC4_OUTPUT_PSD_NODE_IDS in workflowConfig.js may still need the real node id(s).')
+          setFailed(true)
         } else {
           onOutputPsds(psds)
+          setCollapsed(true)
         }
         setRunning(false)
+        setTimestamps((t) => ({ ...t, processDone: Date.now() }))
       } catch (e) {
         setRunError(e.message)
+        setFailed(true)
         setRunning(false)
+        setTimestamps((t) => ({ ...t, processDone: Date.now() }))
       }
     }, POLL_INTERVAL_MS)
   }
@@ -142,74 +174,139 @@ export default function Uc4Workflow ({ onOutputPsds }) {
     setRunning(true)
     setRunError(null)
     setBatchId(null)
+    setStatus(null)
+    setFailed(false)
+    setTimestamps({ start: Date.now(), submitDone: null, processDone: null })
     try {
-      const result = await runUc4Workflow(csv.rows, backgroundImage.presignedUrl, templatePsd.presignedUrl)
+      const result = await runUc4Workflow({
+        rows: csv.rows,
+        skuColumnIndex: csv.skuIndex,
+        backgroundImagePresignedUrl: backgroundImage.presignedUrl,
+        templatePsdPresignedUrl: templatePsd.presignedUrl,
+        colorHex
+      })
       if (!result.batchId) {
         setRunning(false)
         return
       }
       setBatchId(result.batchId)
+      setTimestamps((t) => ({ ...t, submitDone: Date.now() }))
       pollStatus(result.batchId)
     } catch (e) {
       setRunError(e.message)
       setRunning(false)
+      setTimestamps((t) => ({ ...t, submitDone: Date.now(), processDone: Date.now() }))
     }
   }
 
   const canRun = !!csv && !!backgroundImage && !!templatePsd && !running
+  // Hides itself again once a batch succeeds — the PSD editor takes over the
+  // right side at that point (via onOutputPsds), so there's nothing left for
+  // the stepper to show. Stays up on failure so the error is visible.
+  const showStepper = running || failed
 
-  return (
+  const hasInputs = !!(csv || backgroundImage || templatePsd)
+
+  const form = (
     <Flex direction="column" gap="size-75">
       <Flex justifyContent="space-between" alignItems="center">
         <SectionHeading>UC4 BATCH (CSV)</SectionHeading>
-        <Uc4CurlPreview
-          isReady={!!csv}
-          rows={csv?.rows}
-          backgroundImagePresignedUrl={backgroundImage?.presignedUrl}
-          templatePsdPresignedUrl={templatePsd?.presignedUrl}
-        />
-      </Flex>
-      <Uc4CsvUpload
-        value={csv}
-        isUploading={csvUploading}
-        error={csvError}
-        disabled={running}
-        onSelect={handleCsvSelect}
-        onRemove={() => { setCsv(null); setCsvError(null) }}
-      />
-
-      <SectionHeading>TEMPLATE PSD</SectionHeading>
-      <Uc4PsdUpload
-        value={templatePsd}
-        isUploading={psdUploading}
-        error={psdError}
-        disabled={running}
-        onSelect={handlePsdSelect}
-        onRemove={() => { setTemplatePsd(null); setPsdError(null) }}
-      />
-
-      <SectionHeading>BACKGROUND IMAGE</SectionHeading>
-      <Uc4ImageUpload
-        value={backgroundImage}
-        isUploading={imageUploading}
-        error={imageError}
-        disabled={running}
-        onSelect={handleImageSelect}
-        onRemove={() => { setBackgroundImage(null); setImageError(null) }}
-      />
-
-      {(csv || backgroundImage || templatePsd) && (
-        <Flex direction="column" gap="size-50">
-          <Button variant="accent" UNSAFE_style={{ backgroundColor: 'var(--ulta-accent)' }} isDisabled={!canRun} onPress={handleRunWorkflow}>
-            <Flex gap="size-100" alignItems="center">
-              {running && <span className="ulta-spinner" aria-hidden="true" />}
-              <Text>{running ? 'Running workflow...' : 'Run Workflow'}</Text>
-            </Flex>
-          </Button>
-          {runError && <Text UNSAFE_style={{ color: 'var(--spectrum-global-color-red-600)', fontSize: 12 }}>{runError}</Text>}
-          {batchId && <Text UNSAFE_style={{ fontSize: 11, color: 'var(--spectrum-global-color-gray-600)' }}>Batch: {batchId}</Text>}
+        <Flex gap="size-50" alignItems="center">
+          <Uc4CurlPreview
+            isReady={!!csv}
+            rows={csv?.rows}
+            skuColumnIndex={csv?.skuIndex}
+            backgroundImagePresignedUrl={backgroundImage?.presignedUrl}
+            templatePsdPresignedUrl={templatePsd?.presignedUrl}
+            colorHex={colorHex}
+          />
+          {hasInputs && (
+            <ActionButton
+              isQuiet
+              onPress={() => setCollapsed((c) => !c)}
+              aria-label={collapsed ? 'Show batch details' : 'Minimize batch details'}
+              UNSAFE_style={{ minWidth: 0, width: 22, height: 22 }}
+            >
+              {collapsed ? <ChevronDown size="XS" /> : <ChevronUp size="XS" />}
+            </ActionButton>
+          )}
         </Flex>
+      </Flex>
+
+      {collapsed && (
+        <Text UNSAFE_style={{ fontSize: 11, color: 'var(--spectrum-global-color-gray-600)' }}>
+          ✓ {csv?.fileName} · ✓ {templatePsd?.fileName} · ✓ {backgroundImage?.fileName} · {colorHex}
+        </Text>
       )}
+
+      {!collapsed && (
+        <>
+          <Uc4CsvUpload
+            value={csv}
+            isUploading={csvUploading}
+            error={csvError}
+            disabled={running}
+            onSelect={handleCsvSelect}
+            onRemove={() => { setCsv(null); setCsvError(null) }}
+          />
+
+          <SectionHeading>TEMPLATE PSD</SectionHeading>
+          <Uc4PsdUpload
+            value={templatePsd}
+            isUploading={psdUploading}
+            error={psdError}
+            disabled={running}
+            onSelect={handlePsdSelect}
+            onRemove={() => { setTemplatePsd(null); setPsdError(null) }}
+          />
+
+          <SectionHeading>BACKGROUND IMAGE</SectionHeading>
+          <Uc4ImageUpload
+            value={backgroundImage}
+            isUploading={imageUploading}
+            error={imageError}
+            disabled={running}
+            onSelect={handleImageSelect}
+            onRemove={() => { setBackgroundImage(null); setImageError(null) }}
+          />
+
+          <SectionHeading>BACKGROUND COLOR</SectionHeading>
+          <Uc4ColorPicker value={colorHex} onChange={setColorHex} disabled={running} />
+
+          {hasInputs && (
+            <Flex direction="column" gap="size-50">
+              <Button
+                variant="accent"
+                UNSAFE_style={{ backgroundColor: 'var(--ulta-accent)' }}
+                UNSAFE_className={`ulta-execute-btn${running ? ' ulta-executing' : ''}`}
+                isDisabled={!canRun}
+                onPress={handleRunWorkflow}
+              >
+                <Flex gap="size-100" alignItems="center">
+                  {running && <span className="ulta-spinner" aria-hidden="true" />}
+                  <Text>{running ? 'Running workflow...' : 'Run Workflow'}</Text>
+                </Flex>
+              </Button>
+              {runError && !showStepper && <Text UNSAFE_style={{ color: 'var(--spectrum-global-color-red-600)', fontSize: 12 }}>{runError}</Text>}
+            </Flex>
+          )}
+        </>
+      )}
+    </Flex>
+  )
+
+  if (!showStepper) return form
+
+  // While a batch is in flight (or just failed), the form moves to the left
+  // and an animated stepper takes the right — once it succeeds, onOutputPsds
+  // hands off to the parent's PSD editor and this whole component shrinks
+  // back to the form-only view above.
+  return (
+    <Flex direction="row" gap="size-300" alignItems="start">
+      <View flex={1} minWidth={0}>{form}</View>
+      <View flex={1} minWidth={0}>
+        <Uc4WorkflowStepper batchId={batchId} status={status} running={running} failed={failed} errorMessage={runError} timestamps={timestamps} />
+      </View>
     </Flex>
   )
 }

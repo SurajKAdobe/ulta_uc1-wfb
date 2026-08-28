@@ -30,7 +30,7 @@ export default function PsdList ({ documents, activeId, onSelect, onRemove }) {
               borderRadius: 6,
               cursor: 'pointer',
               border: `1px solid ${isActive ? 'var(--ulta-accent)' : 'var(--spectrum-global-color-gray-300)'}`,
-              backgroundColor: isActive ? 'var(--ulta-accent-soft)' : 'var(--spectrum-global-color-gray-50)',
+              backgroundColor: isActive ? 'var(--ulta-accent-soft)' : 'var(--spectrum-global-color-gray-75)',
               transition: 'background-color 0.15s ease, border-color 0.15s ease'
             }}
           >

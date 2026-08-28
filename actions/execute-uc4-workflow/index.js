@@ -4,24 +4,18 @@ const { buildWorkflowHeaders } = require('../libs/workflowAuth')
 
 const WORKFLOW_API_URL = 'https://run-workflow.adobe.io/batch/execute'
 
-// UC4_input.csv has no header row (see web-src/src/utils/csv.js parseUc4Csv) —
-// column indices inferred from a real sample file, not confirmed against a
-// spec:
-//   0: offer name/description (e.g. "VD002 - DIBS Beauty Valid Offer") — NOT used
-//   1: comma-separated SKU ids (e.g. "2648164, 2648170, ...")
-//   2: status (e.g. "Ready for review")
-//   3: background image URL (externally hosted, e.g. monday.com) — NOT used
-//      (see backgroundImagePresignedUrl below): it's a protected asset that
-//      406s when this app's backend tries to fetch it server-side, so the user
-//      uploads the background image manually instead
-//   4: template name (e.g. "BSBS_Test_Headers_SR_FINAL")
-const COL = { offerName: 0, skus: 1, status: 2, imageUrl: 3, template: 4 }
-
-// Hardcoded per instruction — node 4 is a color field, always white.
-// (Confirmed by a real failed batch run: node 4's downstream step errored
+// UC4_input.csv now has a header row — the frontend locates the Image/SKU
+// columns by alias match and validates both are present (see
+// web-src/src/utils/csv.js parseUc4Csv), then sends the resolved SKU column's
+// index here rather than this action guessing a fixed position. The Image
+// column itself isn't consumed here — the background image comes from a
+// manual upload instead (see backgroundImagePresignedUrl below), the CSV's
+// own image column is just required to exist as a schema check.
+// node 4 is a color field, white by default if the caller doesn't send one
+// (confirmed by a real failed batch run: node 4's downstream step errored
 // "Invalid URL: #FFFFFF" and node 8's errored "Missing required input:
-// productImages" — the two were swapped from the original guess.)
-const WHITE_HEX = '#FFFFFF'
+// productImages" — the two were swapped from the original guess).
+const DEFAULT_COLOR_HEX = '#FFFFFF'
 
 // Verified live (curl'd it — real image, 200, image/png, CORS-open) — Ulta's
 // public product image CDN, one image per SKU id. Passed as plain text (node 4
@@ -39,8 +33,9 @@ const PRODUCT_IMAGE_URL = (sku) => `https://media.ultainc.com/i/ulta/${sku}`
 //   4 (UC4_INPUT_COLOR_NODE_ID)    — a text field — hardcoded white hex color
 //   8 (UC4_INPUT_SKU_URLS_NODE_ID) — a text field — comma-separated Ulta CDN
 //                                    product image URLs for the row's SKUs
-function validate ({ rows, backgroundImagePresignedUrl, templatePsdPresignedUrl }, params) {
+function validate ({ rows, skuColumnIndex, backgroundImagePresignedUrl, templatePsdPresignedUrl }, params) {
   if (!Array.isArray(rows) || rows.length === 0) return 'rows must be a non-empty array of CSV records'
+  if (typeof skuColumnIndex !== 'number' || skuColumnIndex < 0) return 'skuColumnIndex is required'
   if (!backgroundImagePresignedUrl) return 'backgroundImagePresignedUrl is required'
   if (!templatePsdPresignedUrl) return 'templatePsdPresignedUrl is required'
   if (!params.UC4_WORKFLOW_ID) return 'UC4_WORKFLOW_ID is not configured'
@@ -54,16 +49,16 @@ function parseSkus (cell) {
   return String(cell || '').split(',').map((s) => s.trim()).filter(Boolean)
 }
 
-function buildInputs (rows, backgroundImagePresignedUrl, templatePsdPresignedUrl, params) {
+function buildInputs (rows, skuColumnIndex, backgroundImagePresignedUrl, templatePsdPresignedUrl, colorHex, params) {
   const rowImageFile = [{ presignedUrl: backgroundImagePresignedUrl, name: 'background.jpg', storageType: 'AWS' }]
 
   return rows.map((row) => {
-    const skuUrls = parseSkus(row[COL.skus]).map(PRODUCT_IMAGE_URL).join(',')
+    const skuUrls = parseSkus(row[skuColumnIndex]).map(PRODUCT_IMAGE_URL).join(',')
 
     return [
       { node_id: params.UC4_INPUT_IMAGE_NODE_ID, content: { presignedUrl: templatePsdPresignedUrl, storageType: 'AWS' } },
       { node_id: params.UC4_INPUT_ROW_IMAGE_NODE_ID, content: rowImageFile },
-      { node_id: params.UC4_INPUT_COLOR_NODE_ID, content: WHITE_HEX },
+      { node_id: params.UC4_INPUT_COLOR_NODE_ID, content: colorHex || DEFAULT_COLOR_HEX },
       { node_id: params.UC4_INPUT_SKU_URLS_NODE_ID, content: skuUrls }
     ]
   })
@@ -71,13 +66,13 @@ function buildInputs (rows, backgroundImagePresignedUrl, templatePsdPresignedUrl
 
 async function main (params) {
   const logger = Core.Logger('execute-uc4-workflow', { level: params.LOG_LEVEL || 'info' })
-  const { rows, backgroundImagePresignedUrl, templatePsdPresignedUrl } = params
+  const { rows, skuColumnIndex, backgroundImagePresignedUrl, templatePsdPresignedUrl, colorHex } = params
 
-  const validationError = validate({ rows, backgroundImagePresignedUrl, templatePsdPresignedUrl }, params)
+  const validationError = validate({ rows, skuColumnIndex, backgroundImagePresignedUrl, templatePsdPresignedUrl }, params)
   if (validationError) return badRequest(validationError)
 
   try {
-    const inputs = buildInputs(rows, backgroundImagePresignedUrl, templatePsdPresignedUrl, params)
+    const inputs = buildInputs(rows, skuColumnIndex, backgroundImagePresignedUrl, templatePsdPresignedUrl, colorHex, params)
 
     const response = await fetch(WORKFLOW_API_URL, {
       method: 'POST',

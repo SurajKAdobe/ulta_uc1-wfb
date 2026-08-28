@@ -29,7 +29,7 @@ export default function Uc4PsdUpload ({ value, isUploading, error, disabled, onS
             border: `1px dashed ${isDragOver ? 'var(--ulta-accent)' : 'var(--spectrum-global-color-gray-300)'}`,
             borderRadius: 'var(--spectrum-alias-border-radius-regular, 4px)',
             padding: 'var(--spectrum-global-dimension-size-200, 16px)',
-            backgroundColor: isDragOver ? 'var(--ulta-accent-soft)' : 'var(--spectrum-global-color-gray-50)',
+            backgroundColor: isDragOver ? 'var(--ulta-accent-soft)' : 'var(--spectrum-global-color-gray-75)',
             textAlign: 'center',
             cursor: disabled ? 'default' : 'pointer',
             transition: 'background-color 0.2s ease, border-color 0.2s ease'

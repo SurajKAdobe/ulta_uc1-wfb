@@ -5,7 +5,7 @@
   "description": "Ulta Beauty batch creative production workflow automation UI (Adobe App Builder)",
   "scripts": {
     "predev": "node scripts/kill-port.js 9080 35729",
-    "dev": "aio app dev",
+    "dev": "node scripts/run-dev.js",
     "run": "aio app run",
     "deploy": "aio app deploy"
   },

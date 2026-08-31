@@ -1,9 +1,10 @@
 import React, { useRef, useState } from 'react'
-import { View, Flex, Heading, Text, Button, ActionButton, MenuTrigger, Menu, Item, DialogTrigger, Dialog, Content, Divider, ButtonGroup } from '@adobe/react-spectrum'
+import { View, Flex, Heading, Text, Button, ActionButton, MenuTrigger, Menu, Item, DialogTrigger, Dialog, Content, Divider, ButtonGroup, SearchField } from '@adobe/react-spectrum'
 import UndoIcon from '@spectrum-icons/workflow/Undo'
 import RedoIcon from '@spectrum-icons/workflow/Redo'
 import ChevronDown from '@spectrum-icons/workflow/ChevronDown'
 import Visibility from '@spectrum-icons/workflow/Visibility'
+import VisibilityOff from '@spectrum-icons/workflow/VisibilityOff'
 import CloseIcon from '@spectrum-icons/workflow/Close'
 import PsdList from './PsdList'
 import Uc4Workflow from './Uc4Workflow'
@@ -27,6 +28,8 @@ export default function SkuPersonalization () {
   const [documents, setDocuments] = useState([])
   const [activeId, setActiveId] = useState(null)
   const [uc4Running, setUc4Running] = useState(false)
+  const [layerSearch, setLayerSearch] = useState('')
+  const [showOnlyVisible, setShowOnlyVisible] = useState(false)
   const nextIdRef = useRef(0)
   // Serializes the manifest+rendition step across documents — uploads (S3 PUTs)
   // still run in parallel below, but each getPsdManifest call already fires N
@@ -40,6 +43,15 @@ export default function SkuPersonalization () {
   const activeDoc = documents.find((d) => d.id === activeId) || null
   const activeLayers = activeDoc?.history ? historyState(activeDoc.history) : []
   const hasDocument = !!activeDoc?.psdDocument
+  // ponytail: filters the flat list directly, so a group header can disappear
+  // from a text search even while a still-matching child stays visible under
+  // it (no re-parenting/re-nesting logic) — acceptable for a first cut, only
+  // worth fixing if that ends up actually confusing in practice.
+  const visibleLayers = activeLayers.filter((l) => {
+    if (showOnlyVisible && l.type !== 'layerSection' && l.visible === false) return false
+    if (layerSearch && !l.name.toLowerCase().includes(layerSearch.toLowerCase())) return false
+    return true
+  })
 
   function updateDoc (id, patch) {
     setDocuments((prev) => prev.map((d) => (d.id === id ? { ...d, ...(typeof patch === 'function' ? patch(d) : patch) } : d)))
@@ -270,16 +282,39 @@ export default function SkuPersonalization () {
           <Flex direction="row" gap="size-200" flex={1} minHeight={0}>
             {(hasDocument || activeDoc?.manifestLoading) && (
               <Flex direction="column" gap="size-75" UNSAFE_style={{ width: 220, flexShrink: 0 }}>
-                <SectionHeading>{hasDocument ? `LAYERS (${activeLayers.length})` : 'LAYERS'}</SectionHeading>
+                <Flex justifyContent="space-between" alignItems="center">
+                  <SectionHeading>{hasDocument ? `LAYERS (${activeLayers.length})` : 'LAYERS'}</SectionHeading>
+                  {hasDocument && (
+                    <ActionButton
+                      isQuiet
+                      isSelected={showOnlyVisible}
+                      onPress={() => setShowOnlyVisible((v) => !v)}
+                      aria-label={showOnlyVisible ? 'Show all layers' : 'Show only visible layers'}
+                      UNSAFE_style={{ minWidth: 0, width: 22, height: 22 }}
+                    >
+                      {showOnlyVisible ? <Visibility size="XS" /> : <VisibilityOff size="XS" />}
+                    </ActionButton>
+                  )}
+                </Flex>
+                {hasDocument && activeLayers.length > 6 && (
+                  <SearchField
+                    aria-label="Search layers"
+                    placeholder="Search layers"
+                    value={layerSearch}
+                    onChange={setLayerSearch}
+                    width="100%"
+                  />
+                )}
                 <View borderWidth="thin" borderColor="gray-300" borderRadius="medium" padding="size-100" UNSAFE_style={{ overflow: 'auto' }}>
                   {hasDocument
                     ? (
                       <LayerList
-                        layers={activeLayers}
+                        layers={visibleLayers}
                         selectedId={activeDoc.selectedId}
                         onSelect={(layerId) => updateDoc(activeDoc.id, { selectedId: layerId })}
                         onToggleVisible={(layerId) => handleToggleVisible(activeDoc.id, layerId)}
                         onReorder={(nextLayers) => handleReorderLayers(activeDoc.id, nextLayers)}
+                        reorderDisabled={!!layerSearch || showOnlyVisible}
                         disabled={activeDoc.saving}
                       />
                       )

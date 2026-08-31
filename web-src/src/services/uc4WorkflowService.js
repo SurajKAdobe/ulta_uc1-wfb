@@ -42,3 +42,30 @@ export function extractUc4OutputPsds (status, { rows, nameIndex } = {}) {
 
   return psds
 }
+
+// Per-row progress derived from the same per-execution node-status data
+// extractUc4OutputPsds already reads (status.outputs[i].outputs[j].status —
+// confirmed real from an actual failed-batch response, not guessed) rather
+// than batch_summary.* counts, which getBatchSummary (workflowService.js)
+// falls back to an indeterminate spinner for when they're absent — that's
+// what showed up as one opaque spinner instead of real "X of Y done" numbers.
+// A row counts as done once its PSD output node(s) all report 'completed',
+// failed if any node in that row reports 'failed', otherwise still running.
+export function getUc4RowProgress (status, totalRows) {
+  const executions = status?.outputs || []
+  let done = 0
+  let failed = 0
+
+  for (const execution of executions) {
+    const nodeOutputs = execution?.outputs || []
+    if (nodeOutputs.some((n) => n.status === 'failed')) {
+      failed++
+      continue
+    }
+    if (UC4_OUTPUT_PSD_NODE_IDS.length > 0 && UC4_OUTPUT_PSD_NODE_IDS.every((id) => nodeOutputs.find((n) => n.node_id === id)?.status === 'completed')) {
+      done++
+    }
+  }
+
+  return { done, failed, total: totalRows ?? executions.length }
+}

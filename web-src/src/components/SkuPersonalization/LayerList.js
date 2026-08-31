@@ -10,12 +10,21 @@ import DragHandle from '@spectrum-icons/workflow/DragHandle'
 // operation to psd-composite, so Save Composite doesn't persist the new stack
 // order into the actual PSD yet. Add that (an insertAbove/insertBelow edit per
 // moved layer) if the preview-only reorder stops being enough.
-export default function LayerList ({ layers, selectedId, onSelect, onToggleVisible, onReorder, disabled }) {
+// reorderDisabled is separate from `disabled` (which blocks all interaction,
+// e.g. while saving) — it's specifically for when `layers` is a filtered
+// subset (search text or "show only visible" active, see SkuPersonalization.js):
+// dragging within a filtered view would splice the *filtered* array and hand
+// back a reordered-but-incomplete list, silently dropping every layer the
+// filter hid. Simplest safe fix is to just not allow reordering while a
+// filter narrows what's shown, rather than reimplementing splice against the
+// full array's index space.
+export default function LayerList ({ layers, selectedId, onSelect, onToggleVisible, onReorder, disabled, reorderDisabled }) {
   const [dragIndex, setDragIndex] = useState(null)
   const [overIndex, setOverIndex] = useState(null)
+  const canReorder = !disabled && !reorderDisabled
 
   function handleDrop (dropIndex) {
-    if (dragIndex == null || dragIndex === dropIndex) return
+    if (!canReorder || dragIndex == null || dragIndex === dropIndex) return
     const next = [...layers]
     const [moved] = next.splice(dragIndex, 1)
     next.splice(dropIndex, 0, moved)
@@ -32,12 +41,12 @@ export default function LayerList ({ layers, selectedId, onSelect, onToggleVisib
         return (
           <div
             key={layer.id}
-            draggable={!disabled}
+            draggable={canReorder}
             onClick={() => !disabled && onSelect(layer.id)}
-            onDragStart={() => setDragIndex(index)}
-            onDragOver={(e) => { e.preventDefault(); if (overIndex !== index) setOverIndex(index) }}
+            onDragStart={() => canReorder && setDragIndex(index)}
+            onDragOver={(e) => { if (!canReorder) return; e.preventDefault(); if (overIndex !== index) setOverIndex(index) }}
             onDragLeave={() => setOverIndex((v) => (v === index ? null : v))}
-            onDrop={(e) => { e.preventDefault(); handleDrop(index); setDragIndex(null); setOverIndex(null) }}
+            onDrop={(e) => { if (!canReorder) return; e.preventDefault(); handleDrop(index); setDragIndex(null); setOverIndex(null) }}
             onDragEnd={() => { setDragIndex(null); setOverIndex(null) }}
             style={{
               display: 'flex',
@@ -56,7 +65,7 @@ export default function LayerList ({ layers, selectedId, onSelect, onToggleVisib
             onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'var(--spectrum-global-color-gray-100)' }}
             onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent' }}
           >
-            {!disabled && (
+            {canReorder && (
               <DragHandle
                 size="XS"
                 UNSAFE_style={{ color: 'var(--spectrum-global-color-gray-400)', flexShrink: 0, cursor: 'grab' }}

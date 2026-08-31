@@ -2,17 +2,18 @@ import React, { useEffect, useState } from 'react'
 import { View, Flex, Text } from '@adobe/react-spectrum'
 import Checkmark from '@spectrum-icons/workflow/Checkmark'
 import Close from '@spectrum-icons/workflow/Close'
-import { getBatchSummary } from '../../services/workflowService'
+import { getUc4RowProgress } from '../../services/uc4WorkflowService'
 
 // ponytail: the real Workflow Builder graph has many more nodes than this (see
 // execute-uc4-workflow/index.js) and their per-execution statuses ARE present
 // in the poll response (status.outputs[i].outputs[j].{node_id,status}) — but
-// node ids aren't exposed to the frontend (they're action-only env vars), and
-// hardcoding specific ids here has already gone stale twice this session. So
-// this shows 3 honest, always-true stages instead of a fake per-node graph:
-// submit -> process (with real row counts from getBatchSummary) -> done. Wire
-// up real per-node steps later if UC4_* node ids get mirrored into
-// workflowConfig.js the way OUTPUT_PSD_NODE_ID already is.
+// most node ids aren't exposed to the frontend (they're action-only env
+// vars), and hardcoding specific ids here has already gone stale twice this
+// session. So this shows 3 honest, always-true stages instead of a fake
+// per-node graph: submit -> process (with real per-row counts from
+// getUc4RowProgress, derived from that same per-execution node-status data
+// via the one output node id that IS shared with the frontend,
+// UC4_OUTPUT_PSD_NODE_IDS) -> done.
 const STEPS = [
   { key: 'submit', label: 'Submit batch', detail: 'Sending CSV rows to Workflow Builder' },
   { key: 'process', label: 'Process rows', detail: 'Compositing each row’s PSD' },
@@ -32,7 +33,7 @@ function formatSeconds (ms) {
   return `${Math.max(0, Math.round(ms / 1000))}s`
 }
 
-export default function Uc4WorkflowStepper ({ batchId, status, running, failed, errorMessage, timestamps }) {
+export default function Uc4WorkflowStepper ({ batchId, status, running, failed, errorMessage, timestamps, totalRows }) {
   const { start, submitDone, processDone } = timestamps || {}
 
   // Ticks once a second only while something is still timing (running) — no
@@ -48,10 +49,10 @@ export default function Uc4WorkflowStepper ({ batchId, status, running, failed, 
   const submitSeconds = start ? formatSeconds((submitDone || now) - start) : null
   const processSeconds = submitDone ? formatSeconds((processDone || now) - submitDone) : null
 
-  const summary = getBatchSummary(status)
-  const total = summary.total ?? null
-  const completed = summary.completed ?? 0
-  const failedCount = summary.failed ?? 0
+  const rowProgress = getUc4RowProgress(status, totalRows)
+  const total = rowProgress.total || null
+  const completed = rowProgress.done
+  const failedCount = rowProgress.failed
 
   // Step state machine, driven entirely by real signals (batchId presence,
   // whether we're still polling, whether a terminal failure was reported) —
@@ -69,7 +70,7 @@ export default function Uc4WorkflowStepper ({ batchId, status, running, failed, 
     states = { submit: 'done', process: 'done', done: 'done' }
   }
 
-  const processProgress = total ? Math.round(((completed + failedCount) / total) * 100) : (summary.progress ?? null)
+  const processProgress = total ? Math.round(((completed + failedCount) / total) * 100) : null
 
   return (
     <View borderWidth="thin" borderColor="gray-300" borderRadius="medium" padding="size-250" UNSAFE_className="ulta-fade-in">
@@ -102,7 +103,7 @@ export default function Uc4WorkflowStepper ({ batchId, status, running, failed, 
                 </Flex>
                 <Text UNSAFE_style={{ fontSize: 11, color: 'var(--spectrum-global-color-gray-600)', display: 'block' }}>
                   {step.key === 'process' && state === 'active' && total
-                    ? `${completed + failedCount} of ${total} rows processed${failedCount ? ` (${failedCount} failed)` : ''}`
+                    ? `${completed + failedCount} of ${total} rows done${failedCount ? ` (${failedCount} failed)` : ''}`
                     : step.detail}
                 </Text>
                 {step.key === 'process' && state === 'active' && (

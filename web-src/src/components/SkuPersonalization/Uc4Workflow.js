@@ -338,7 +338,7 @@ export default function Uc4Workflow ({ onOutputPsds, onRunningChange }) {
     <Flex direction="row" gap="size-300" alignItems="start">
       <View flex={1} minWidth={0}>{form}</View>
       <View flex={1} minWidth={0}>
-        <Uc4WorkflowStepper batchId={batchId} status={status} running={running} failed={failed} errorMessage={runError} timestamps={timestamps} />
+        <Uc4WorkflowStepper batchId={batchId} status={status} running={running} failed={failed} errorMessage={runError} timestamps={timestamps} totalRows={csv?.rows?.length} />
       </View>
     </Flex>
   )

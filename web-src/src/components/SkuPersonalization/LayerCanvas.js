@@ -4,6 +4,7 @@ import { Text } from '@adobe/react-spectrum'
 
 const MAX_CANVAS_WIDTH = 640
 const MAX_CANVAS_HEIGHT = 560
+const SNAP_THRESHOLD_PX = 6 // canvas-preview pixels, not original PSD pixels
 
 // Selection/hover highlight that hugs the PNG's actual alpha silhouette
 // instead of its rectangular bounding box — stacking several blurred, zero-
@@ -31,7 +32,9 @@ const HOVER_GLOW_FILTER = [
 // "north" of the box's un-rotated frame rather than orbiting with the current
 // angle between edits — simpler, and you're already looking at the box while
 // dragging so it doesn't need to visually track rotation to stay usable.
-function RotateHandle ({ onRotateChange, onRotateEnd }) {
+// The number field next to it covers what the 12px dot can't: typing an exact
+// angle instead of eyeballing a drag gesture.
+function RotateHandle ({ angle, onRotateChange, onRotateEnd, onAngleCommit }) {
   function handlePointerDown (e) {
     e.stopPropagation()
     e.preventDefault()
@@ -62,25 +65,51 @@ function RotateHandle ({ onRotateChange, onRotateEnd }) {
   }
 
   return (
-    <div
-      onMouseDown={handlePointerDown}
-      role="slider"
-      aria-label="Rotate layer"
-      aria-valuenow={0}
-      style={{
-        position: 'absolute',
-        top: -22,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        width: 12,
-        height: 12,
-        borderRadius: '50%',
-        background: 'var(--ulta-accent)',
-        border: '2px solid #fff',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.35)',
-        cursor: 'grab'
-      }}
-    />
+    <>
+      <div
+        onMouseDown={handlePointerDown}
+        role="slider"
+        aria-label="Rotate layer"
+        aria-valuenow={angle}
+        style={{
+          position: 'absolute',
+          top: -22,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: 12,
+          height: 12,
+          borderRadius: '50%',
+          background: 'var(--ulta-accent)',
+          border: '2px solid #fff',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.35)',
+          cursor: 'grab'
+        }}
+      />
+      <input
+        type="number"
+        aria-label="Rotation angle in degrees"
+        value={Math.round(angle)}
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+        onChange={(e) => {
+          const value = Number(e.target.value)
+          if (Number.isFinite(value)) onAngleCommit(((value % 360) + 360) % 360)
+        }}
+        style={{
+          position: 'absolute',
+          top: -32,
+          left: 'calc(50% + 20px)',
+          width: 44,
+          fontSize: 10,
+          padding: '4px 6px',
+          border: '1px solid var(--spectrum-global-color-gray-400)',
+          borderRadius: 4,
+          background: 'var(--spectrum-global-color-gray-50)',
+          color: 'var(--spectrum-global-color-gray-900)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.25)'
+        }}
+      />
+    </>
   )
 }
 
@@ -96,6 +125,11 @@ export default function LayerCanvas ({ psdDocument, layers, selectedId, onSelect
   // React state only needs to update once the gesture ends.
   const [liveRotate, setLiveRotate] = useState(null) // { layerId, angle }
   const [hoveredId, setHoveredId] = useState(null)
+  // Live-tracks drag position the same way, so the box can visually snap to
+  // canvas-center guides mid-drag (not just once you let go) without fighting
+  // react-rnd's own internal drag tracking — see snapPosition below.
+  const [liveDrag, setLiveDrag] = useState(null) // { layerId, x, y }
+  const [snapGuides, setSnapGuides] = useState({ x: false, y: false })
 
   if (!psdDocument) return null
 
@@ -118,14 +152,60 @@ export default function LayerCanvas ({ psdDocument, layers, selectedId, onSelect
     .filter((l) => l.type !== 'layerSection' && l.visible !== false)
     .reverse()
 
+  // Snaps a drag position to the canvas's own center guide (horizontal and/or
+  // vertical independently) whenever the box's center lands within
+  // SNAP_THRESHOLD_PX of it — cheap, no react-rnd guide-line support needed.
+  function snapPosition (x, y, boxWidth, boxHeight) {
+    const boxCenterX = x + boxWidth / 2
+    const boxCenterY = y + boxHeight / 2
+    const canvasCenterX = canvasWidth / 2
+    const canvasCenterY = canvasHeight / 2
+    const snapX = Math.abs(boxCenterX - canvasCenterX) < SNAP_THRESHOLD_PX
+    const snapY = Math.abs(boxCenterY - canvasCenterY) < SNAP_THRESHOLD_PX
+    return {
+      x: snapX ? canvasCenterX - boxWidth / 2 : x,
+      y: snapY ? canvasCenterY - boxHeight / 2 : y,
+      snapX,
+      snapY
+    }
+  }
+
+  // Arrow keys nudge the selected layer (1px, or 10px with Shift); Escape/
+  // Delete/Backspace just deselect — no destructive delete here, this is only
+  // ever a selection clear. Needs the canvas to be focusable (tabIndex below)
+  // since keydown only fires on/under whatever currently has focus.
+  function handleKeyDown (e) {
+    if (disabled) return
+    if (e.key === 'Escape') { onSelect(null); return }
+    if (e.key === 'Delete' || e.key === 'Backspace') { onSelect(null); return }
+    const dirs = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] }
+    const dir = dirs[e.key]
+    if (!dir || selectedId == null) return
+    const layer = renderableLayers.find((l) => l.id === selectedId)
+    if (!layer) return
+    e.preventDefault()
+    // Nudge amount is in canvas-preview pixels, same as a mouse drag — divided
+    // by scale to land back in the original PSD-pixel units bounds are stored
+    // in, same conversion onDragStop already does.
+    const step = Math.round((e.shiftKey ? 10 : 1) / scale) || 1
+    onChange(selectedId, {
+      ...layer.bounds,
+      left: layer.bounds.left + dir[0] * step,
+      top: layer.bounds.top + dir[1] * step
+    })
+  }
+
   return (
     <div
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
       style={{
         position: 'relative',
         width: canvasWidth,
         height: canvasHeight,
         margin: '0 auto',
         overflow: 'hidden',
+        outline: 'none',
         border: '1px solid var(--spectrum-global-color-gray-300)',
         // Checkerboard background stands in for PSD transparency.
         backgroundImage:
@@ -134,6 +214,13 @@ export default function LayerCanvas ({ psdDocument, layers, selectedId, onSelect
         backgroundPosition: '0 0, 0 8px, 8px -8px, -8px 0'
       }}
     >
+      {snapGuides.x && (
+        <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: 0, borderLeft: '1px dashed var(--ulta-accent)', pointerEvents: 'none', zIndex: 2 }} />
+      )}
+      {snapGuides.y && (
+        <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: 0, borderTop: '1px dashed var(--ulta-accent)', pointerEvents: 'none', zIndex: 2 }} />
+      )}
+
       {renderableLayers.map((layer) => {
         const boxWidth = layer.bounds.width * scale
         const boxHeight = layer.bounds.height * scale
@@ -141,6 +228,7 @@ export default function LayerCanvas ({ psdDocument, layers, selectedId, onSelect
         const isHovered = hoveredId === layer.id
         const highlightFilter = isSelected ? SELECTED_GLOW_FILTER : (isHovered ? HOVER_GLOW_FILTER : undefined)
         const angle = liveRotate?.layerId === layer.id ? liveRotate.angle : (layer.bounds.rotate || 0)
+        const isDraggingThis = liveDrag?.layerId === layer.id
 
         // createRendition (actions/psd-manifest/index.js) sometimes returns the
         // layer's rendition at full document-canvas size (everything else
@@ -159,8 +247,18 @@ export default function LayerCanvas ({ psdDocument, layers, selectedId, onSelect
             enableResizing={!disabled}
             lockAspectRatio
             size={{ width: boxWidth, height: boxHeight }}
-            position={{ x: layer.bounds.left * scale, y: layer.bounds.top * scale }}
-            onDragStop={(e, d) => onChange(layer.id, { ...layer.bounds, left: Math.round(d.x / scale), top: Math.round(d.y / scale) })}
+            position={isDraggingThis ? { x: liveDrag.x, y: liveDrag.y } : { x: layer.bounds.left * scale, y: layer.bounds.top * scale }}
+            onDrag={(e, d) => {
+              const snapped = snapPosition(d.x, d.y, boxWidth, boxHeight)
+              setLiveDrag({ layerId: layer.id, x: snapped.x, y: snapped.y })
+              setSnapGuides({ x: snapped.snapX, y: snapped.snapY })
+            }}
+            onDragStop={(e, d) => {
+              const snapped = snapPosition(d.x, d.y, boxWidth, boxHeight)
+              setLiveDrag(null)
+              setSnapGuides({ x: false, y: false })
+              onChange(layer.id, { ...layer.bounds, left: Math.round(snapped.x / scale), top: Math.round(snapped.y / scale) })
+            }}
             onResizeStop={(e, dir, ref, delta, pos) => onChange(layer.id, {
               ...layer.bounds,
               width: Math.round(ref.offsetWidth / scale),
@@ -231,11 +329,13 @@ export default function LayerCanvas ({ psdDocument, layers, selectedId, onSelect
               </div>
               {isSelected && !disabled && (
                 <RotateHandle
+                  angle={angle}
                   onRotateChange={(deg) => setLiveRotate({ layerId: layer.id, angle: deg })}
                   onRotateEnd={(deg) => {
                     setLiveRotate(null)
                     onChange(layer.id, { ...layer.bounds, rotate: deg })
                   }}
+                  onAngleCommit={(deg) => onChange(layer.id, { ...layer.bounds, rotate: deg })}
                 />
               )}
             </div>

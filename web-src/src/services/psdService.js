@@ -23,10 +23,15 @@ export async function getPsdManifest (presignedUrl) {
 // no S3 key of ours to refresh).
 export async function saveComposite (source, edits) {
   const presignedUrl = source.key ? await refreshPresignedUrl(source.key) : source.presignedUrl
-  const { putUrl, getUrl, key } = await callAction('presign-upload', {
-    kind: 'psd',
-    fileName: 'composite.psd'
+  const [psdSlot, pngSlot] = await Promise.all([
+    callAction('presign-upload', { kind: 'psd', fileName: 'composite.psd' }),
+    callAction('presign-upload', { kind: 'png', fileName: 'composite.png' })
+  ])
+  await callAction('psd-composite', {
+    presignedUrl,
+    outputPutUrl: psdSlot.putUrl,
+    outputPngPutUrl: pngSlot.putUrl,
+    edits
   })
-  await callAction('psd-composite', { presignedUrl, outputPutUrl: putUrl, edits })
-  return { presignedUrl: getUrl, key }
+  return { presignedUrl: psdSlot.getUrl, key: psdSlot.key, pngPresignedUrl: pngSlot.getUrl }
 }

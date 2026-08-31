@@ -2,7 +2,7 @@ const { nanoid } = require('nanoid')
 const { ok, badRequest, serverError } = require('../libs/http')
 const { getUploadUrls } = require('../libs/s3')
 
-const ALLOWED_KINDS = new Set(['csv', 'psd', 'image'])
+const ALLOWED_KINDS = new Set(['csv', 'psd', 'image', 'png'])
 
 function sanitizeFileName (name) {
   return String(name || 'upload').replace(/[^a-zA-Z0-9._-]/g, '_')

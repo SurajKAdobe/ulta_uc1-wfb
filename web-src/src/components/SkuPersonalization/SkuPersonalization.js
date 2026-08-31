@@ -1,7 +1,10 @@
 import React, { useRef, useState } from 'react'
-import { View, Flex, Heading, Text, Button, ActionButton } from '@adobe/react-spectrum'
+import { View, Flex, Heading, Text, Button, ActionButton, MenuTrigger, Menu, Item, DialogTrigger, Dialog, Content, Divider, ButtonGroup } from '@adobe/react-spectrum'
 import UndoIcon from '@spectrum-icons/workflow/Undo'
 import RedoIcon from '@spectrum-icons/workflow/Redo'
+import ChevronDown from '@spectrum-icons/workflow/ChevronDown'
+import Visibility from '@spectrum-icons/workflow/Visibility'
+import CloseIcon from '@spectrum-icons/workflow/Close'
 import PsdList from './PsdList'
 import Uc4Workflow from './Uc4Workflow'
 import LayerCanvas from './LayerCanvas'
@@ -74,6 +77,7 @@ export default function SkuPersonalization () {
       saving: false,
       saveError: null,
       downloadUrl: null,
+      downloadPngUrl: null,
       downloaded: false
     }
   }
@@ -109,22 +113,26 @@ export default function SkuPersonalization () {
     const doc = documents.find((d) => d.id === docId)
     if (!doc) return
     const next = historyState(doc.history).map((l) => (l.id === layerId ? { ...l, bounds } : l))
-    updateDoc(docId, (d) => ({ history: pushHistory(d.history, next), downloadUrl: null, downloaded: false }))
+    updateDoc(docId, (d) => ({ history: pushHistory(d.history, next), downloadUrl: null, downloadPngUrl: null, downloaded: false }))
   }
 
   function handleToggleVisible (docId, layerId) {
     const doc = documents.find((d) => d.id === docId)
     if (!doc) return
     const next = historyState(doc.history).map((l) => (l.id === layerId ? { ...l, visible: l.visible === false } : l))
-    updateDoc(docId, (d) => ({ history: pushHistory(d.history, next), downloadUrl: null, downloaded: false }))
+    updateDoc(docId, (d) => ({ history: pushHistory(d.history, next), downloadUrl: null, downloadPngUrl: null, downloaded: false }))
+  }
+
+  function handleReorderLayers (docId, nextLayers) {
+    updateDoc(docId, (d) => ({ history: pushHistory(d.history, nextLayers), downloadUrl: null, downloadPngUrl: null, downloaded: false }))
   }
 
   function handleUndo () {
-    if (activeDoc) updateDoc(activeDoc.id, (d) => ({ history: undoHistory(d.history), downloadUrl: null, downloaded: false }))
+    if (activeDoc) updateDoc(activeDoc.id, (d) => ({ history: undoHistory(d.history), downloadUrl: null, downloadPngUrl: null, downloaded: false }))
   }
 
   function handleRedo () {
-    if (activeDoc) updateDoc(activeDoc.id, (d) => ({ history: redoHistory(d.history), downloadUrl: null, downloaded: false }))
+    if (activeDoc) updateDoc(activeDoc.id, (d) => ({ history: redoHistory(d.history), downloadUrl: null, downloadPngUrl: null, downloaded: false }))
   }
 
   async function handleSave () {
@@ -152,16 +160,17 @@ export default function SkuPersonalization () {
       // URLs expire); UC4 workflow-sourced docs don't — use their presignedUrl
       // as-is (see saveComposite in services/psdService.js).
       const source = activeDoc.key ? { key: activeDoc.key } : { presignedUrl: activeDoc.presignedUrl }
-      const { presignedUrl } = await saveComposite(source, edits)
-      updateDoc(id, { downloadUrl: presignedUrl, downloaded: false, saving: false })
+      const { presignedUrl, pngPresignedUrl } = await saveComposite(source, edits)
+      updateDoc(id, { downloadUrl: presignedUrl, downloadPngUrl: pngPresignedUrl, downloaded: false, saving: false })
     } catch (e) {
       updateDoc(id, { saveError: e.message, saving: false })
     }
   }
 
-  function handleDownload () {
-    if (!activeDoc?.downloadUrl) return
-    window.open(activeDoc.downloadUrl, '_blank', 'noopener')
+  function handleDownload (which) {
+    const url = which === 'png' ? activeDoc?.downloadPngUrl : activeDoc?.downloadUrl
+    if (!url) return
+    window.open(url, '_blank', 'noopener')
     updateDoc(activeDoc.id, { downloaded: true })
   }
 
@@ -218,9 +227,40 @@ export default function SkuPersonalization () {
                     <Text>{activeDoc.saving ? 'Saving...' : 'Save Composite'}</Text>
                   </Flex>
                 </Button>
-                <Button variant="secondary" isDisabled={!activeDoc.downloadUrl} onPress={handleDownload}>
-                  {activeDoc.downloaded ? '✓ Downloaded' : 'Download PSD'}
-                </Button>
+                <DialogTrigger type="modal">
+                  <ActionButton isQuiet isDisabled={!activeDoc.downloadPngUrl} aria-label="Preview PNG">
+                    <Visibility size="S" />
+                  </ActionButton>
+                  {(close) => (
+                    <Dialog size="L">
+                      <Content>
+                        <ActionButton isQuiet onPress={close} aria-label="Close" UNSAFE_style={{ position: 'absolute', top: 8, right: 8, zIndex: 1 }}>
+                          <CloseIcon size="S" />
+                        </ActionButton>
+                        <Flex alignItems="center" justifyContent="center" UNSAFE_style={{ minHeight: 320 }}>
+                          <img src={activeDoc.downloadPngUrl} alt="Composite PNG preview" className="ulta-lightbox-image" style={{ maxHeight: '70vh' }} />
+                        </Flex>
+                      </Content>
+                      <Divider />
+                      <ButtonGroup>
+                        <Button variant="secondary" onPress={close}>Close</Button>
+                      </ButtonGroup>
+                    </Dialog>
+                  )}
+                </DialogTrigger>
+
+                <MenuTrigger>
+                  <Button variant="secondary" isDisabled={!activeDoc.downloadUrl}>
+                    <Flex gap="size-100" alignItems="center">
+                      <Text>{activeDoc.downloaded ? '✓ Downloaded' : 'Download'}</Text>
+                      <ChevronDown size="XS" />
+                    </Flex>
+                  </Button>
+                  <Menu onAction={(key) => handleDownload(key)} disabledKeys={activeDoc.downloadPngUrl ? [] : ['png']}>
+                    <Item key="psd">Download PSD</Item>
+                    <Item key="png">Download PNG</Item>
+                  </Menu>
+                </MenuTrigger>
               </Flex>
             )}
           </Flex>
@@ -239,6 +279,7 @@ export default function SkuPersonalization () {
                         selectedId={activeDoc.selectedId}
                         onSelect={(layerId) => updateDoc(activeDoc.id, { selectedId: layerId })}
                         onToggleVisible={(layerId) => handleToggleVisible(activeDoc.id, layerId)}
+                        onReorder={(nextLayers) => handleReorderLayers(activeDoc.id, nextLayers)}
                         disabled={activeDoc.saving}
                       />
                       )
@@ -265,7 +306,12 @@ export default function SkuPersonalization () {
               {activeDoc?.manifestLoading && (
                 <div className="ulta-skeleton" aria-label="Reading PSD layers" role="img" style={{ width: '100%', height: '100%', minHeight: 320, borderRadius: 8 }} />
               )}
-              {activeDoc?.manifestError && <Text UNSAFE_style={{ color: 'var(--spectrum-global-color-red-600)', fontSize: 12 }}>{activeDoc.manifestError}</Text>}
+              {activeDoc?.manifestError && (
+                <Flex direction="column" alignItems="start" gap="size-100">
+                  <Text UNSAFE_style={{ color: 'var(--spectrum-global-color-red-600)', fontSize: 12 }}>{activeDoc.manifestError}</Text>
+                  <Button variant="secondary" onPress={() => loadManifestFor(activeDoc.id, activeDoc.presignedUrl)}>Retry</Button>
+                </Flex>
+              )}
               {!activeDoc && (
                 <Text UNSAFE_style={{ fontSize: 12, color: 'var(--spectrum-global-color-gray-600)' }}>Upload a PSD to see its layers here.</Text>
               )}

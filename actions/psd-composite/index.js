@@ -40,7 +40,7 @@ function validate ({ presignedUrl, outputPutUrl, edits }) {
 // of writing; watch the logs on first save after this change.
 async function main (params) {
   const logger = Core.Logger('psd-composite', { level: params.LOG_LEVEL || 'info' })
-  const { presignedUrl, outputPutUrl, edits } = params
+  const { presignedUrl, outputPutUrl, outputPngPutUrl, edits } = params
 
   const validationError = validate({ presignedUrl, outputPutUrl, edits })
   if (validationError) return badRequest(validationError)
@@ -77,7 +77,15 @@ async function main (params) {
           }
         }))
       },
-      outputs: [{ destination: { url: outputPutUrl }, mediaType: 'image/vnd.adobe.photoshop' }]
+      // outputPngPutUrl is optional — when given, the same job also renders a
+      // flattened PNG of the composite alongside the PSD, in one call instead
+      // of a separate rendition round trip. Unverified against a live
+      // multi-output job as of writing; watch the logs on first save with a
+      // PNG requested.
+      outputs: [
+        { destination: { url: outputPutUrl }, mediaType: 'image/vnd.adobe.photoshop' },
+        ...(outputPngPutUrl ? [{ destination: { url: outputPngPutUrl }, mediaType: 'image/png' }] : [])
+      ]
     }, params, 270000)
 
     // The job's own success/failure is reported at the whole-job level, but

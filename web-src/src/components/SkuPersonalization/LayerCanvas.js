@@ -5,6 +5,27 @@ import { Text } from '@adobe/react-spectrum'
 const MAX_CANVAS_WIDTH = 640
 const MAX_CANVAS_HEIGHT = 560
 
+// Selection/hover highlight that hugs the PNG's actual alpha silhouette
+// instead of its rectangular bounding box — stacking several blurred, zero-
+// offset drop-shadows around the image recolors every non-transparent
+// pixel's edge, since drop-shadow's shadow shape follows the source's alpha
+// channel, not its box. No canvas/pixel processing needed: it's a plain CSS
+// filter, so it stays correct automatically as the layer moves/resizes/
+// rotates. Layered radii (small/tight to large/soft) with falling opacity is
+// what gives it a "glow" falloff instead of a single hard-edged ring.
+const SELECTED_GLOW_FILTER = [
+  'drop-shadow(0 0 2px rgba(255, 255, 255, 0.95))',
+  'drop-shadow(0 0 6px rgba(255, 255, 255, 0.85))',
+  'drop-shadow(0 0 12px rgba(255, 255, 255, 0.6))'
+].join(' ')
+
+// Same idea, dimmer/tighter — a hovered-but-not-selected layer shouldn't
+// compete visually with the actual selection.
+const HOVER_GLOW_FILTER = [
+  'drop-shadow(0 0 2px rgba(255, 255, 255, 0.55))',
+  'drop-shadow(0 0 6px rgba(255, 255, 255, 0.35))'
+].join(' ')
+
 // Small circular handle above the selected box — drag it around the box's
 // center to set a rotation angle. ponytail: the handle itself stays fixed at
 // "north" of the box's un-rotated frame rather than orbiting with the current
@@ -74,6 +95,7 @@ export default function LayerCanvas ({ psdDocument, layers, selectedId, onSelect
   // committed via onChange) — same reasoning as the old liveResize tracking:
   // React state only needs to update once the gesture ends.
   const [liveRotate, setLiveRotate] = useState(null) // { layerId, angle }
+  const [hoveredId, setHoveredId] = useState(null)
 
   if (!psdDocument) return null
 
@@ -116,6 +138,8 @@ export default function LayerCanvas ({ psdDocument, layers, selectedId, onSelect
         const boxWidth = layer.bounds.width * scale
         const boxHeight = layer.bounds.height * scale
         const isSelected = selectedId === layer.id
+        const isHovered = hoveredId === layer.id
+        const highlightFilter = isSelected ? SELECTED_GLOW_FILTER : (isHovered ? HOVER_GLOW_FILTER : undefined)
         const angle = liveRotate?.layerId === layer.id ? liveRotate.angle : (layer.bounds.rotate || 0)
 
         // createRendition (actions/psd-manifest/index.js) sometimes returns the
@@ -146,9 +170,14 @@ export default function LayerCanvas ({ psdDocument, layers, selectedId, onSelect
             })}
             onMouseDown={() => onSelect(layer.id)}
             style={{
-              // Transparent (not "none") when unselected — keeps box-sizing
-              // identical so nothing shifts by 2px when selection changes.
-              border: `2px solid ${isSelected ? 'var(--ulta-accent)' : 'transparent'}`,
+              // No rectangle border anymore — selection/hover is marked by a
+              // glow filter on the image itself (see SELECTED_GLOW_FILTER /
+              // HOVER_GLOW_FILTER), which hugs the PNG's actual silhouette
+              // instead of its bounding box. A thin transparent border is kept
+              // only for layers with no thumbnail at all (a text placeholder
+              // has no alpha shape to glow), so those still get some visible
+              // selection marker.
+              border: !layer.thumbnail && isSelected ? '2px solid var(--ulta-accent)' : '2px solid transparent',
               boxSizing: 'border-box',
               backgroundColor: layer.thumbnail ? 'transparent' : 'rgba(244,124,57,0.08)'
             }}
@@ -161,7 +190,11 @@ export default function LayerCanvas ({ psdDocument, layers, selectedId, onSelect
                 isn't clipped to that rectangle either, so clipping here just cut
                 the rotated image off at the edges. The canvas container above
                 still clips at the page's own edges. */}
-            <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+            <div
+              style={{ position: 'relative', width: '100%', height: '100%' }}
+              onMouseEnter={() => setHoveredId(layer.id)}
+              onMouseLeave={() => setHoveredId((id) => (id === layer.id ? null : id))}
+            >
               <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {!layer.thumbnail && (
                   <Text UNSAFE_style={{ fontSize: 10, color: 'var(--spectrum-global-color-gray-700)', pointerEvents: 'none', transform: `rotate(${angle}deg)` }}>{layer.name}</Text>
@@ -173,6 +206,7 @@ export default function LayerCanvas ({ psdDocument, layers, selectedId, onSelect
                       height: '100%',
                       pointerEvents: 'none',
                       transform: `rotate(${angle}deg)`,
+                      filter: highlightFilter,
                       backgroundImage: `url(${layer.thumbnail})`,
                       backgroundRepeat: 'no-repeat',
                       backgroundSize: `${canvasWidth * zoomX}px ${canvasHeight * zoomY}px`,
@@ -184,7 +218,14 @@ export default function LayerCanvas ({ psdDocument, layers, selectedId, onSelect
                   <img
                     src={layer.thumbnail}
                     alt={layer.name}
-                    style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', transform: `rotate(${angle}deg)` }}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'contain',
+                      pointerEvents: 'none',
+                      transform: `rotate(${angle}deg)`,
+                      filter: highlightFilter
+                    }}
                   />
                 )}
               </div>

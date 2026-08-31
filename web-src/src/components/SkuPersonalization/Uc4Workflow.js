@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Flex, Heading, Text, Button, View, ActionButton } from '@adobe/react-spectrum'
 import ChevronUp from '@spectrum-icons/workflow/ChevronUp'
 import ChevronDown from '@spectrum-icons/workflow/ChevronDown'
+import Checkmark from '@spectrum-icons/workflow/Checkmark'
 import Uc4CsvUpload from './Uc4CsvUpload'
 import Uc4ImageUpload from './Uc4ImageUpload'
 import Uc4PsdUpload from './Uc4PsdUpload'
@@ -20,6 +21,35 @@ function SectionHeading ({ children }) {
     <Heading level={4} margin={0} UNSAFE_style={{ letterSpacing: 1, color: 'var(--spectrum-global-color-gray-700)', fontSize: 12 }}>
       {children}
     </Heading>
+  )
+}
+
+// One pill per configured input, used in the collapsed-batch summary — a
+// single run-on text string ("✓ a.csv · ✓ b.psd c.jpg · #FFFFFF") wrapped
+// unpredictably mid-filename and dropped separators between wrapped lines.
+// Individually-wrapping chips read cleanly no matter how many end up on a line.
+function SummaryChip ({ label, swatch }) {
+  return (
+    <Flex
+      alignItems="center"
+      gap="size-50"
+      UNSAFE_style={{
+        fontSize: 11,
+        color: 'var(--spectrum-global-color-gray-700)',
+        background: 'var(--spectrum-global-color-gray-100)',
+        border: '1px solid var(--spectrum-global-color-gray-300)',
+        borderRadius: 999,
+        padding: '3px 9px',
+        maxWidth: 200
+      }}
+    >
+      {swatch
+        ? <span style={{ width: 10, height: 10, borderRadius: '50%', background: swatch, border: '1px solid var(--spectrum-global-color-gray-400)', flexShrink: 0 }} />
+        : <Checkmark size="XS" UNSAFE_style={{ color: 'var(--spectrum-global-color-green-700)', flexShrink: 0 }} />}
+      <Text UNSAFE_style={{ fontSize: 11, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={label}>
+        {label}
+      </Text>
+    </Flex>
   )
 }
 
@@ -234,9 +264,12 @@ export default function Uc4Workflow ({ onOutputPsds, onRunningChange }) {
       </Flex>
 
       {collapsed && (
-        <Text UNSAFE_style={{ fontSize: 11, color: 'var(--spectrum-global-color-gray-600)' }}>
-          ✓ {csv?.fileName} · ✓ {templatePsd?.fileName} · ✓ {backgroundImage?.fileName} · {colorHex}
-        </Text>
+        <Flex wrap gap="size-75" UNSAFE_style={{ maxWidth: '100%' }}>
+          {csv && <SummaryChip label={csv.fileName} />}
+          {templatePsd && <SummaryChip label={templatePsd.fileName} />}
+          {backgroundImage && <SummaryChip label={backgroundImage.fileName} />}
+          <SummaryChip label={colorHex} swatch={colorHex} />
+        </Flex>
       )}
 
       {!collapsed && (

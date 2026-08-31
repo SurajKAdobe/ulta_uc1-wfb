@@ -4,3 +4,4 @@ dist/
 .aio
 .parcel-cache/
 .aws.tmp.creds.json
+wfb.json

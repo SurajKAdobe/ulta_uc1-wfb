@@ -130,6 +130,14 @@ export default function LayerCanvas ({ psdDocument, layers, selectedId, onSelect
   // react-rnd's own internal drag tracking — see snapPosition below.
   const [liveDrag, setLiveDrag] = useState(null) // { layerId, x, y }
   const [snapGuides, setSnapGuides] = useState({ x: false, y: false })
+  // Live-tracks resize dimensions too — react-rnd resizes its own DOM box
+  // directly during a drag (so the box visibly grows/shrinks live no matter
+  // what), but a full-canvas layer's crop window (backgroundSize/Position
+  // below) is computed from committed React state, which only updates on
+  // onResizeStop. Without this, the box resizes live but the cropped image
+  // inside it doesn't rescale to match until you let go — this feeds the
+  // in-progress size into that same crop math on every tick instead.
+  const [liveResize, setLiveResize] = useState(null) // { layerId, width, height }
 
   if (!psdDocument) return null
 
@@ -229,6 +237,11 @@ export default function LayerCanvas ({ psdDocument, layers, selectedId, onSelect
         const highlightFilter = isSelected ? SELECTED_GLOW_FILTER : (isHovered ? HOVER_GLOW_FILTER : undefined)
         const angle = liveRotate?.layerId === layer.id ? liveRotate.angle : (layer.bounds.rotate || 0)
         const isDraggingThis = liveDrag?.layerId === layer.id
+        const isResizingThis = liveResize?.layerId === layer.id
+        // Only the crop math needs the live-during-drag size — Rnd's own box
+        // element already tracks its live size itself via direct DOM resize.
+        const cropWidth = isResizingThis ? liveResize.width : boxWidth
+        const cropHeight = isResizingThis ? liveResize.height : boxHeight
 
         // createRendition (actions/psd-manifest/index.js) sometimes returns the
         // layer's rendition at full document-canvas size (everything else
@@ -236,8 +249,8 @@ export default function LayerCanvas ({ psdDocument, layers, selectedId, onSelect
         // server-side (thumbnailIsFullCanvas), not assumed. Full-canvas needs
         // cropping out like a sprite sheet; a tight crop is just a normal image.
         const source = layer.sourceBounds || layer.bounds
-        const zoomX = layer.thumbnailIsFullCanvas ? boxWidth / (source.width * scale) : 1
-        const zoomY = layer.thumbnailIsFullCanvas ? boxHeight / (source.height * scale) : 1
+        const zoomX = layer.thumbnailIsFullCanvas ? cropWidth / (source.width * scale) : 1
+        const zoomY = layer.thumbnailIsFullCanvas ? cropHeight / (source.height * scale) : 1
 
         return (
           <Rnd
@@ -259,13 +272,17 @@ export default function LayerCanvas ({ psdDocument, layers, selectedId, onSelect
               setSnapGuides({ x: false, y: false })
               onChange(layer.id, { ...layer.bounds, left: Math.round(snapped.x / scale), top: Math.round(snapped.y / scale) })
             }}
-            onResizeStop={(e, dir, ref, delta, pos) => onChange(layer.id, {
-              ...layer.bounds,
-              width: Math.round(ref.offsetWidth / scale),
-              height: Math.round(ref.offsetHeight / scale),
-              left: Math.round(pos.x / scale),
-              top: Math.round(pos.y / scale)
-            })}
+            onResize={(e, dir, ref) => setLiveResize({ layerId: layer.id, width: ref.offsetWidth, height: ref.offsetHeight })}
+            onResizeStop={(e, dir, ref, delta, pos) => {
+              setLiveResize(null)
+              onChange(layer.id, {
+                ...layer.bounds,
+                width: Math.round(ref.offsetWidth / scale),
+                height: Math.round(ref.offsetHeight / scale),
+                left: Math.round(pos.x / scale),
+                top: Math.round(pos.y / scale)
+              })
+            }}
             onMouseDown={() => onSelect(layer.id)}
             style={{
               // No rectangle border anymore — selection/hover is marked by a

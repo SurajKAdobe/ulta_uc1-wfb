@@ -6,6 +6,8 @@ import ChevronDown from '@spectrum-icons/workflow/ChevronDown'
 import Visibility from '@spectrum-icons/workflow/Visibility'
 import VisibilityOff from '@spectrum-icons/workflow/VisibilityOff'
 import CloseIcon from '@spectrum-icons/workflow/Close'
+import ZoomIn from '@spectrum-icons/workflow/ZoomIn'
+import ZoomOut from '@spectrum-icons/workflow/ZoomOut'
 import PsdList from './PsdList'
 import Uc4Workflow from './Uc4Workflow'
 import LayerCanvas from './LayerCanvas'
@@ -86,6 +88,7 @@ export default function SkuPersonalization () {
       psdDocument: null,
       history: null,
       selectedId: null,
+      zoom: 1,
       saving: false,
       saveError: null,
       downloadUrl: null,
@@ -137,6 +140,12 @@ export default function SkuPersonalization () {
 
   function handleReorderLayers (docId, nextLayers) {
     updateDoc(docId, (d) => ({ history: pushHistory(d.history, nextLayers), downloadUrl: null, downloadPngUrl: null, downloaded: false }))
+  }
+
+  // Shared by the zoom in/out buttons and Ctrl+scroll (LayerCanvas's onZoomChange)
+  // — same clamp/rounding either way, just a different delta per call site.
+  function adjustZoom (docId, delta) {
+    updateDoc(docId, (d) => ({ zoom: Math.min(3, Math.max(0.25, Math.round(((d.zoom ?? 1) + delta) * 100) / 100)) }))
   }
 
   function handleUndo () {
@@ -216,7 +225,42 @@ export default function SkuPersonalization () {
         {documents.length > 0 && (
         <div className="ulta-col">
           <Flex direction="row" justifyContent="space-between" alignItems="center">
-            <SectionHeading>PREVIEW</SectionHeading>
+            <Flex alignItems="center" gap="size-200">
+              <SectionHeading>PREVIEW</SectionHeading>
+              {/* Zooms the whole canvas (not individual layers) — makes it much
+                  easier to nudge things into alignment at 200%+ than eyeballing
+                  it at the auto-fit size. Multiplies the same `scale` factor
+                  everything else (drag/resize/snap/nudge) is computed in
+                  (LayerCanvas.js), so interactions stay pixel-accurate at any
+                  zoom level instead of a CSS transform faking the zoom visually. */}
+              {hasDocument && (
+                <Flex alignItems="center" gap="size-50">
+                  <ActionButton
+                    isQuiet
+                    onPress={() => adjustZoom(activeDoc.id, -0.25)}
+                    aria-label="Zoom out"
+                    UNSAFE_style={{ minWidth: 0, width: 22, height: 22 }}
+                  >
+                    <ZoomOut size="XS" />
+                  </ActionButton>
+                  <Text
+                    UNSAFE_style={{ fontSize: 11, color: 'var(--spectrum-global-color-gray-600)', minWidth: 34, textAlign: 'center', cursor: 'pointer' }}
+                    onClick={() => updateDoc(activeDoc.id, { zoom: 1 })}
+                    title="Reset to 100%"
+                  >
+                    {Math.round((activeDoc.zoom ?? 1) * 100)}%
+                  </Text>
+                  <ActionButton
+                    isQuiet
+                    onPress={() => adjustZoom(activeDoc.id, 0.25)}
+                    aria-label="Zoom in"
+                    UNSAFE_style={{ minWidth: 0, width: 22, height: 22 }}
+                  >
+                    <ZoomIn size="XS" />
+                  </ActionButton>
+                </Flex>
+              )}
+            </Flex>
             {hasDocument && (
               <Flex gap="size-100" alignItems="center">
                 <Flex gap="size-50">
@@ -366,8 +410,16 @@ export default function SkuPersonalization () {
                     position: 'absolute',
                     inset: 0,
                     display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    // "safe center" (not plain "center") — plain center + a
+                    // scrollable ancestor is a known browser bug: once the
+                    // zoomed canvas is bigger than this box, flex centering
+                    // clips it symmetrically around the middle instead of
+                    // letting you scroll to its actual edges ("should be
+                    // scrollable to the end" / "background getting cropped").
+                    // safe falls back to start-alignment once content
+                    // overflows, so nothing becomes unreachable.
+                    alignItems: 'safe center',
+                    justifyContent: 'safe center',
                     visibility: doc.id === activeId ? 'visible' : 'hidden',
                     pointerEvents: doc.id === activeId ? 'auto' : 'none'
                   }}
@@ -379,6 +431,8 @@ export default function SkuPersonalization () {
                     onSelect={(layerId) => updateDoc(doc.id, { selectedId: layerId })}
                     onChange={(layerId, bounds) => handleLayerChange(doc.id, layerId, bounds)}
                     disabled={doc.saving}
+                    canvasZoom={doc.zoom ?? 1}
+                    onZoomChange={(deltaY) => adjustZoom(doc.id, -deltaY * 0.0015)}
                   />
                 </div>
               ))}

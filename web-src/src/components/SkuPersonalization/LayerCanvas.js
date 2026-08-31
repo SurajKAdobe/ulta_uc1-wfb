@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Rnd } from 'react-rnd'
 import { Text } from '@adobe/react-spectrum'
 
@@ -119,7 +119,27 @@ function RotateHandle ({ angle, onRotateChange, onRotateEnd, onAngleCommit }) {
 // their thumbnail/rendition, not truly rendered/blended pixels. Good enough to
 // move/resize/rotate layers for a composite; not a pixel-accurate Photoshop
 // preview.
-export default function LayerCanvas ({ psdDocument, layers, selectedId, onSelect, onChange, disabled }) {
+export default function LayerCanvas ({ psdDocument, layers, selectedId, onSelect, onChange, disabled, canvasZoom = 1, onZoomChange }) {
+  const canvasRef = useRef(null)
+
+  // Ctrl/Cmd+scroll to zoom, same convention as Figma/Photoshop/every design
+  // tool. Needs a real (non-passive) native listener, not React's onWheel —
+  // React registers wheel listeners as passive by default, so e.preventDefault()
+  // inside a JSX onWheel silently does nothing and the browser still zooms the
+  // whole page. Trackpad pinch-zoom also arrives as a ctrlKey wheel event in
+  // every major browser, so this covers that gesture too, not just an actual
+  // physical Ctrl+scroll.
+  useEffect(() => {
+    const el = canvasRef.current
+    if (!el || !onZoomChange) return
+    function handleWheel (e) {
+      if (!e.ctrlKey) return
+      e.preventDefault()
+      onZoomChange(e.deltaY)
+    }
+    el.addEventListener('wheel', handleWheel, { passive: false })
+    return () => el.removeEventListener('wheel', handleWheel)
+  }, [onZoomChange])
   // Live-tracks rotation while the handle is being dragged (before it's
   // committed via onChange) — same reasoning as the old liveResize tracking:
   // React state only needs to update once the gesture ends.
@@ -141,7 +161,18 @@ export default function LayerCanvas ({ psdDocument, layers, selectedId, onSelect
 
   if (!psdDocument) return null
 
-  const scale = Math.min(MAX_CANVAS_WIDTH / psdDocument.width, MAX_CANVAS_HEIGHT / psdDocument.height, 1)
+  // fitScale is the "100% zoom" baseline (document scaled to fit the preview
+  // area); canvasZoom (a separate user-controlled multiplier, see the zoom
+  // toolbar in SkuPersonalization.js) is layered on top of it as `scale`, and
+  // every position/size conversion below uses `scale` — so zooming in/out
+  // doesn't just change what's drawn, it changes the actual pixel-to-PSD-unit
+  // ratio everything (drag, resize, snap, nudge) is computed in, which is what
+  // keeps all the interaction math correct at any zoom level instead of
+  // needing a separate "undo the zoom" step (e.g. a CSS transform: scale on
+  // an ancestor would look right but throw off react-rnd's own drag math,
+  // which reads raw mouse-movement pixels unaware of any ancestor transform).
+  const fitScale = Math.min(MAX_CANVAS_WIDTH / psdDocument.width, MAX_CANVAS_HEIGHT / psdDocument.height, 1)
+  const scale = fitScale * canvasZoom
   const canvasWidth = psdDocument.width * scale
   const canvasHeight = psdDocument.height * scale
 
@@ -205,12 +236,18 @@ export default function LayerCanvas ({ psdDocument, layers, selectedId, onSelect
 
   return (
     <div
+      ref={canvasRef}
       tabIndex={0}
       onKeyDown={handleKeyDown}
       style={{
         position: 'relative',
         width: canvasWidth,
         height: canvasHeight,
+        // Without this, the flex-centered wrapper around this canvas
+        // (SkuPersonalization.js) would try to shrink it to fit once
+        // canvasZoom makes it bigger than the visible area, squishing the
+        // whole preview instead of letting the ancestor scroll to it.
+        flexShrink: 0,
         margin: '0 auto',
         overflow: 'hidden',
         outline: 'none',

@@ -1,0 +1,15 @@
+{
+  "name": "UC4 Personalization",
+  "id": "com.ulta.uc4-figma-personalization",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "editorType": ["figma"],
+  "networkAccess": {
+    "allowedDomains": [
+      "https://*.adobeioruntime.net",
+      "https://*.amazonaws.com",
+      "https://*.s3.amazonaws.com"
+    ]
+  }
+}

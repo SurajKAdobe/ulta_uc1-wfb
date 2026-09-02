@@ -226,6 +226,26 @@ application:
               require-adobe-auth: false
               final: true
 
+          # Proxies a GET for a Workflow Builder output asset — see
+          # actions/fetch-asset/index.js for why (CORS, not auth).
+          fetch-asset:
+            function: actions/fetch-asset/index.js
+            web: 'yes'
+            runtime: nodejs:20
+            limits:
+              timeout: 300000
+              memory: 512
+            inputs:
+              LOG_LEVEL: info
+              S3_PRESIGN_URL: $S3_PRESIGN_URL
+              S3_ACCESS_KEY: $S3_ACCESS_KEY
+              S3_SECRET_KEY: $S3_SECRET_KEY
+              S3_BUCKET: $S3_BUCKET
+              S3_REGION: $S3_REGION
+            annotations:
+              require-adobe-auth: false
+              final: true
+
           # Display-only mirror of execute-uc4-workflow's request shape — never
           # calls Workflow Builder, instant and free (no files to re-host).
           preview-uc4-workflow:

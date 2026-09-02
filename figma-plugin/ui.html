@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  :root {
+    /* Ulta brand accent — matches web-src/src/styles/ulta-theme.css */
+    --accent: #F47C39;
+    --accent-dim: rgba(244, 124, 57, 0.18);
+    --ok: var(--accent);
+    --err: #f24822;
+    --ink: #2c2c2c;
+    --muted: #8c8c8c;
+    --line: #e6e6e6;
+    --bg-soft: #f8f8f8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font: 12px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    margin: 0; padding: 14px; color: var(--ink);
+    background: #fff;
+    animation: fadeIn .25s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  h4 {
+    margin: 0 0 6px; font-size: 10px; letter-spacing: .6px; color: var(--muted);
+    text-transform: uppercase; font-weight: 600;
+  }
+
+  /* ---- settings (collapsible) ---- */
+  details {
+    margin-bottom: 12px; border-radius: 8px; overflow: hidden;
+  }
+  summary {
+    cursor: pointer; font-size: 11px; color: var(--muted); padding: 4px 2px;
+    list-style: none; display: flex; align-items: center; gap: 6px; user-select: none;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary::before {
+    content: '▸'; display: inline-block; transition: transform .18s ease; font-size: 9px;
+  }
+  details[open] summary::before { transform: rotate(90deg); }
+  details .body { padding: 8px 2px 2px; animation: fadeIn .18s ease; }
+  input[type="text"] {
+    width: 100%; padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px;
+    font-size: 11px; outline: none; transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  input[type="text"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+  .hint { color: var(--muted); font-size: 10.5px; margin-top: 5px; }
+
+  /* ---- upload cards ---- */
+  .card {
+    display: block; width: 100%; position: relative; border: 1.5px dashed var(--line); border-radius: 10px;
+    padding: 12px; margin-bottom: 10px; text-align: center; cursor: pointer;
+    transition: border-color .18s ease, background .18s ease, transform .1s ease;
+    background: var(--bg-soft);
+  }
+  .card:hover { border-color: var(--accent); background: var(--accent-dim); }
+  .card:active { transform: scale(.99); }
+  .card.dragover { border-color: var(--accent); background: var(--accent-dim); }
+  .card.filled { border-style: solid; border-color: var(--ok); background: var(--accent-dim); }
+  .card input[type="file"] { display: none; }
+  .card-icon {
+    width: 26px; height: 26px; margin: 0 auto 4px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: #fff; border: 1px solid var(--line); font-size: 13px;
+    transition: transform .25s cubic-bezier(.34,1.56,.64,1), background .2s ease, border-color .2s ease;
+  }
+  .card.filled .card-icon {
+    background: var(--ok); border-color: var(--ok); color: #fff; transform: scale(1.08);
+  }
+  .card-title { font-size: 11.5px; font-weight: 600; }
+  .card-sub { font-size: 10.5px; color: var(--muted); margin-top: 2px; word-break: break-all; }
+  .card.filled .card-sub { color: var(--accent); }
+  .card-remove {
+    position: absolute; top: 6px; right: 6px; width: 18px; height: 18px; border-radius: 50%;
+    border: none; background: rgba(0,0,0,.08); color: var(--ink); font-size: 11px; line-height: 1;
+    cursor: pointer; display: none; align-items: center; justify-content: center;
+    transition: background .15s ease;
+  }
+  .card.filled .card-remove { display: flex; }
+  .card-remove:hover { background: rgba(0,0,0,.18); }
+
+  /* ---- color row ---- */
+  .color-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  input[type="color"] {
+    width: 32px; height: 32px; padding: 0; border: 1px solid var(--line); border-radius: 8px;
+    cursor: pointer; transition: transform .12s ease;
+  }
+  input[type="color"]:hover { transform: scale(1.06); }
+  #colorHex { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  /* ---- run button ---- */
+  button.run {
+    width: 100%; padding: 10px; border: none; border-radius: 8px; font-size: 12.5px;
+    font-weight: 600; color: #fff; cursor: pointer; position: relative; overflow: hidden;
+    background: var(--accent); transition: transform .1s ease, box-shadow .15s ease, background .2s ease;
+  }
+  button.run:hover:not(:disabled) { box-shadow: 0 4px 14px rgba(244,124,57,.35); transform: translateY(-1px); }
+  button.run:active:not(:disabled) { transform: translateY(0); }
+  button.run:disabled { background: #d9d9d9; color: #a3a3a3; cursor: default; box-shadow: none; }
+  button.run.running {
+    background: linear-gradient(90deg, var(--accent), #ffb488, var(--accent));
+    background-size: 200% 100%; animation: shimmer 1.4s linear infinite;
+  }
+  @keyframes shimmer { to { background-position: -200% 0; } }
+  .spin {
+    display: inline-block; width: 12px; height: 12px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,.4); border-top-color: #fff;
+    animation: spin .7s linear infinite; margin-right: 6px; vertical-align: -2px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ---- step progress ---- */
+  #steps { display: flex; align-items: center; margin: 14px 0 6px; }
+  .step { display: flex; flex-direction: column; align-items: center; flex: 1; position: relative; }
+  .step .dot {
+    width: 20px; height: 20px; border-radius: 50%; background: var(--line); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700;
+    transition: background .25s ease, transform .25s ease; z-index: 1;
+  }
+  .step .label { font-size: 9.5px; color: var(--muted); margin-top: 4px; text-align: center; }
+  .step:not(:last-child)::after {
+    content: ''; position: absolute; top: 10px; left: 50%; width: 100%; height: 2px;
+    background: var(--line); z-index: 0; transition: background .3s ease;
+  }
+  .step.done .dot { background: var(--ok); }
+  .step.done:not(:last-child)::after { background: var(--ok); }
+  .step.active .dot { background: var(--accent); animation: pulse 1.1s ease-in-out infinite; }
+  .step.failed .dot { background: var(--err); }
+  @keyframes pulse { 0%,100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(244,124,57,.4);} 50% { transform: scale(1.12); box-shadow: 0 0 0 5px rgba(244,124,57,0);} }
+
+  #statusBox { font-size: 11px; color: var(--muted); text-align: center; min-height: 14px; transition: opacity .2s ease; }
+  .error {
+    color: var(--err); font-size: 11px; margin-top: 6px; white-space: pre-wrap;
+    background: #fdeceb; border-radius: 6px; padding: 6px 8px; display: none;
+  }
+  .error:not(:empty) { display: block; animation: fadeIn .2s ease; }
+
+  /* ---- results ---- */
+  #results { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+  .result-row {
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    background: var(--bg-soft); border-radius: 8px; padding: 7px 10px;
+    opacity: 0; transform: translateY(6px); animation: rowIn .3s ease forwards;
+  }
+  @keyframes rowIn { to { opacity: 1; transform: none; } }
+  .result-row .name { font-size: 11px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .result-row button {
+    flex-shrink: 0; border: none; border-radius: 6px; padding: 5px 10px; font-size: 10.5px;
+    font-weight: 600; cursor: pointer; background: var(--accent); color: #fff;
+    transition: transform .12s ease, background .15s ease;
+  }
+  .result-row button:hover:not(:disabled) { transform: translateY(-1px); }
+  .result-row button:disabled { background: #ccc; cursor: default; }
+  .result-row button.secondary { background: #fff; color: var(--ink); border: 1px solid var(--line); }
+</style>
+</head>
+<body>
+  <details id="settingsBox">
+    <summary>API settings</summary>
+    <div class="body">
+      <h4>API Base URL</h4>
+      <input type="text" id="apiBaseUrl" placeholder="https://<ns>-<app>.adobeioruntime.net" />
+      <div class="hint">Deployed <code>aio app deploy</code> runtime host (<code>ulta-wfb</code> package). Saved locally.</div>
+    </div>
+  </details>
+
+  <h4>Template PSD</h4>
+  <label class="card" id="psdCard">
+    <input type="file" id="psdFile" accept=".psd" />
+    <div class="card-icon">📄</div>
+    <div class="card-title" id="psdTitle">Drop or choose a template PSD</div>
+    <div class="card-sub" id="psdSummary"></div>
+    <button type="button" class="card-remove" id="psdRemove">✕</button>
+  </label>
+
+  <h4>CSV (Image/SKU + Name columns)</h4>
+  <label class="card" id="csvCard">
+    <input type="file" id="csvFile" accept=".csv" />
+    <div class="card-icon">📊</div>
+    <div class="card-title" id="csvTitle">Drop or choose a CSV</div>
+    <div class="card-sub" id="csvSummary"></div>
+    <button type="button" class="card-remove" id="csvRemove">✕</button>
+  </label>
+
+  <h4>Background Image</h4>
+  <label class="card" id="bgCard">
+    <input type="file" id="bgFile" accept="image/*" />
+    <div class="card-icon">🖼️</div>
+    <div class="card-title" id="bgTitle">Drop or choose a background image</div>
+    <div class="card-sub" id="bgSummary"></div>
+    <button type="button" class="card-remove" id="bgRemove">✕</button>
+  </label>
+
+  <h4>Background Color</h4>
+  <div class="color-row">
+    <input type="color" id="colorPicker" value="#ffffff" />
+    <span id="colorHex">#FFFFFF</span>
+  </div>
+
+  <button class="run" id="runBtn" disabled>Run Workflow</button>
+
+  <div id="steps" style="display:none">
+    <div class="step" data-step="upload"><div class="dot">1</div><div class="label">Upload</div></div>
+    <div class="step" data-step="submit"><div class="dot">2</div><div class="label">Submit</div></div>
+    <div class="step" data-step="process"><div class="dot">3</div><div class="label">Process</div></div>
+    <div class="step" data-step="done"><div class="dot">✓</div><div class="label">Done</div></div>
+  </div>
+  <div id="statusBox"></div>
+  <div class="error" id="error"></div>
+
+  <div id="results"></div>
+
+<script>
+  // --- Ported verbatim from web-src/src/utils/csv.js (splitCsvLine, parseUc4Csv) ---
+  function splitCsvLine (line) {
+    const fields = []
+    let field = ''
+    let inQuotes = false
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i]
+      if (inQuotes) {
+        if (c === '"') {
+          if (line[i + 1] === '"') { field += '"'; i++ } else { inQuotes = false }
+        } else {
+          field += c
+        }
+      } else if (c === '"') {
+        inQuotes = true
+      } else if (c === ',') {
+        fields.push(field.trim())
+        field = ''
+      } else {
+        field += c
+      }
+    }
+    fields.push(field.trim())
+    return fields
+  }
+
+  function normalizeHeader (h) {
+    return h.trim().toLowerCase().replace(/\s*\|\s*/g, '|')
+  }
+
+  const UC4_SKU_ALIASES = ['image|sku', 'sku', 'skus', "sku's", 'sku id', 'sku ids']
+  const UC4_NAME_ALIASES = ['name', 'offer name', 'offer', 'title']
+
+  function findUc4ColumnIndex (headers, aliases) {
+    return headers.findIndex((h) => aliases.includes(normalizeHeader(h)))
+  }
+
+  function parseUc4Csv (text) {
+    const lines = text.split(/\r\n|\r|\n/).filter((line) => line.trim().length > 0)
+    if (lines.length === 0) {
+      return { headers: [], rows: [], recordCount: 0, skuIndex: -1, nameIndex: -1, missingColumns: ['Image | Sku'] }
+    }
+    const headers = splitCsvLine(lines[0])
+    const skuIndex = findUc4ColumnIndex(headers, UC4_SKU_ALIASES)
+    const nameIndex = findUc4ColumnIndex(headers, UC4_NAME_ALIASES)
+    const missingColumns = skuIndex === -1 ? ['Image | Sku'] : []
+    const rows = lines.slice(1).map(splitCsvLine).filter((cells) => cells.some((c) => c !== ''))
+    return { headers, rows, recordCount: rows.length, skuIndex, nameIndex, missingColumns }
+  }
+  // --- end port ---
+
+  // --- Ported from web-src/src/services/uc4WorkflowService.js (extractUc4OutputPsds) ---
+  // Real node id confirmed against a completed batch — see web-src/src/workflowConfig.js.
+  const UC4_OUTPUT_PSD_NODE_IDS = ['node_1787843874081_zpybqfouc_8_603n3t']
+  const TERMINAL_STATES = ['completed', 'succeeded', 'success', 'failed', 'error', 'cancelled', 'canceled']
+  const FAILED_STATES = ['failed', 'error', 'cancelled', 'canceled']
+
+  function readState (status) {
+    const raw = status?.status ?? status?.batchStatus ?? status?.state
+    return raw ? String(raw).toLowerCase() : null
+  }
+  function isTerminalStatus (status) { const s = readState(status); return s ? TERMINAL_STATES.includes(s) : false }
+  function isFailedStatus (status) { const s = readState(status); return s ? FAILED_STATES.includes(s) : false }
+
+  function extractUc4OutputPsds (status, { rows, nameIndex } = {}) {
+    const executions = status?.outputs || []
+    const psds = []
+    executions.forEach((execution, rowIndex) => {
+      const nodeOutputs = execution?.outputs || []
+      const rowLabel = nameIndex != null && nameIndex >= 0 ? rows?.[rowIndex]?.[nameIndex] : null
+      UC4_OUTPUT_PSD_NODE_IDS.forEach((nodeId, nodeIndex) => {
+        const node = nodeOutputs.find((n) => n.node_id === nodeId)
+        const content = node?.content
+        if (!content?.presignedUrl) return
+        const suffix = UC4_OUTPUT_PSD_NODE_IDS.length > 1 ? ` (${nodeIndex + 1})` : ''
+        const name = rowLabel ? `${rowLabel}${suffix}` : (content.name || `${nodeId}.psd`)
+        psds.push({ url: content.presignedUrl, name })
+      })
+    })
+    return psds
+  }
+
+  // Not part of the ported UC4 service (which only reads the pinned PSD node
+  // id) — UC4's exact final-rendition PNG node id isn't documented anywhere
+  // the way UC4_OUTPUT_PSD_NODE_IDS is, so instead of guessing one, this scans
+  // every node in the row's outputs for image/png content. Figma can't import
+  // a .psd (figma.createImage only takes raster bytes), so this is what
+  // "insert into Figma" is offered for instead.
+  //
+  // ponytail: a real batch response also echoes back each raw per-SKU product
+  // image as its own image/png node (named "image-0", "image-1", ... —
+  // confirmed live, that's what showed up as a plain product photo instead of
+  // the composited result). Those are excluded by name; anything left is
+  // labeled with its actual WFB content name (not just a row/index label) so
+  // it's obvious which rendition it is before clicking Insert. If UC4's graph
+  // ever adds more echoed-input node names, extend this filter to match.
+  function extractUc4OutputPngs (status, { rows, nameIndex } = {}) {
+    const executions = status?.outputs || []
+    const pngs = []
+    executions.forEach((execution, rowIndex) => {
+      const nodeOutputs = execution?.outputs || []
+      const rowLabel = nameIndex != null && nameIndex >= 0 ? rows?.[rowIndex]?.[nameIndex] : null
+      nodeOutputs.forEach((node) => {
+        const content = node?.content
+        if (content?.mimeType !== 'image/png' || !content.presignedUrl) return
+        if (/^image-\d+$/i.test(content.name || '')) return // raw echoed SKU product image, not the composite
+        const label = rowLabel ? `${rowLabel} — ${content.name || node.node_id}` : (content.name || `${node.node_id}.png`)
+        pngs.push({ url: content.presignedUrl, name: label })
+      })
+    })
+    return pngs
+  }
+  // --- end port ---
+
+  const PACKAGE_NAME = 'ulta-wfb'
+  let apiBaseUrl = ''
+
+  async function callAction (name, payload = {}) {
+    if (!apiBaseUrl) throw new Error('Set the API Base URL above first.')
+    const url = `${apiBaseUrl.replace(/\/$/, '')}/api/v1/web/${PACKAGE_NAME}/${name}`
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    const data = await response.json().catch(() => null)
+    if (!response.ok || !data || data.ok === false) {
+      throw new Error(data?.error?.message || `Action ${name} failed`)
+    }
+    return data
+  }
+
+  // Same presign-upload / direct-PUT-to-S3 pattern as uploadService.js.
+  async function uploadFile (file, kind) {
+    const { putUrl, getUrl } = await callAction('presign-upload', { kind, fileName: file.name })
+    const putResponse = await fetch(putUrl, {
+      method: 'PUT',
+      headers: { 'content-type': file.type || 'application/octet-stream' },
+      body: file
+    })
+    if (!putResponse.ok) throw new Error('Upload failed. Please try again.')
+    return getUrl
+  }
+
+  // --- UI wiring ---
+  const el = (id) => document.getElementById(id)
+  const apiBaseUrlEl = el('apiBaseUrl')
+  const runBtn = el('runBtn')
+  const stepsEl = el('steps')
+  const statusBox = el('statusBox')
+  const errorEl = el('error')
+  const resultsEl = el('results')
+
+  let csv = null // { rows, skuIndex, nameIndex }
+  let psdFile = null
+  let bgFile = null
+  let running = false
+
+  function updateRunEnabled () {
+    runBtn.disabled = running || !(csv && psdFile && bgFile && apiBaseUrl)
+  }
+
+  // One drag/drop + click-to-browse card, shared by all three inputs.
+  function wireCard ({ cardId, inputId, titleId, summaryId, removeId, emptyTitle, accept, onFile, onClear }) {
+    const card = el(cardId)
+    const input = el(inputId)
+    const title = el(titleId)
+    const summary = el(summaryId)
+
+    function setFile (file) {
+      if (!file) {
+        card.classList.remove('filled')
+        title.textContent = emptyTitle
+        summary.textContent = ''
+        onClear()
+        return
+      }
+      card.classList.add('filled')
+      title.textContent = file.name
+      summary.textContent = `${(file.size / 1024).toFixed(0)} KB`
+      onFile(file)
+    }
+
+    input.addEventListener('change', (e) => setFile(e.target.files[0] || null))
+    el(removeId).addEventListener('click', (e) => {
+      e.preventDefault(); e.stopPropagation()
+      input.value = ''
+      setFile(null)
+    })
+    ;['dragenter', 'dragover'].forEach((evt) => card.addEventListener(evt, (e) => {
+      e.preventDefault(); card.classList.add('dragover')
+    }))
+    ;['dragleave', 'drop'].forEach((evt) => card.addEventListener(evt, (e) => {
+      e.preventDefault(); card.classList.remove('dragover')
+    }))
+    card.addEventListener('drop', (e) => {
+      const file = e.dataTransfer.files[0]
+      if (file) { input.files = e.dataTransfer.files; setFile(file) }
+    })
+  }
+
+  wireCard({
+    cardId: 'psdCard', inputId: 'psdFile', titleId: 'psdTitle', summaryId: 'psdSummary', removeId: 'psdRemove',
+    emptyTitle: 'Drop or choose a template PSD',
+    onFile: (file) => { psdFile = file; updateRunEnabled() },
+    onClear: () => { psdFile = null; updateRunEnabled() }
+  })
+
+  wireCard({
+    cardId: 'bgCard', inputId: 'bgFile', titleId: 'bgTitle', summaryId: 'bgSummary', removeId: 'bgRemove',
+    emptyTitle: 'Drop or choose a background image',
+    onFile: (file) => { bgFile = file; updateRunEnabled() },
+    onClear: () => { bgFile = null; updateRunEnabled() }
+  })
+
+  wireCard({
+    cardId: 'csvCard', inputId: 'csvFile', titleId: 'csvTitle', summaryId: 'csvSummary', removeId: 'csvRemove',
+    emptyTitle: 'Drop or choose a CSV',
+    onFile: (file) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const parsed = parseUc4Csv(reader.result)
+        if (parsed.missingColumns.length > 0) {
+          errorEl.textContent = `CSV is missing required column(s): ${parsed.missingColumns.join(', ')}`
+          csv = null
+          el('csvCard').classList.remove('filled')
+          el('csvTitle').textContent = 'Drop or choose a CSV'
+        } else {
+          errorEl.textContent = ''
+          csv = parsed
+          el('csvSummary').textContent = `${parsed.recordCount} row(s) loaded`
+        }
+        updateRunEnabled()
+      }
+      reader.readAsText(file)
+    },
+    onClear: () => { csv = null; updateRunEnabled() }
+  })
+
+  const colorPicker = el('colorPicker')
+  const colorHexEl = el('colorHex')
+  colorPicker.addEventListener('input', () => { colorHexEl.textContent = colorPicker.value.toUpperCase() })
+
+  apiBaseUrlEl.addEventListener('change', () => {
+    apiBaseUrl = apiBaseUrlEl.value.trim()
+    parent.postMessage({ pluginMessage: { type: 'save-settings', apiBaseUrl } }, '*')
+    updateRunEnabled()
+  })
+
+  function setStep (name, state) {
+    const step = stepsEl.querySelector(`[data-step="${name}"]`)
+    if (!step) return
+    step.classList.remove('done', 'active', 'failed')
+    if (state) step.classList.add(state)
+  }
+  function resetSteps () {
+    stepsEl.querySelectorAll('.step').forEach((s) => s.classList.remove('done', 'active', 'failed'))
+  }
+
+  function setRunning (value) {
+    running = value
+    runBtn.classList.toggle('running', value)
+    runBtn.innerHTML = value ? '<span class="spin"></span>Running...' : 'Run Workflow'
+    updateRunEnabled()
+  }
+
+  async function pollStatus (batchId) {
+    setStep('process', 'active')
+    statusBox.textContent = `Batch ${batchId} — waiting for Workflow Builder...`
+    for (;;) {
+      await new Promise((r) => setTimeout(r, 4000))
+      const { status } = await callAction('check-status', { batchId })
+      if (!isTerminalStatus(status)) {
+        statusBox.textContent = `Batch ${batchId} — running...`
+        continue
+      }
+      if (isFailedStatus(status)) {
+        throw new Error('The UC4 workflow batch finished with a failed status.')
+      }
+      return status
+    }
+  }
+
+  runBtn.addEventListener('click', async () => {
+    errorEl.textContent = ''
+    resultsEl.innerHTML = ''
+    stepsEl.style.display = 'flex'
+    resetSteps()
+    setRunning(true)
+    try {
+      setStep('upload', 'active')
+      statusBox.textContent = 'Uploading template PSD...'
+      const templatePsdPresignedUrl = await uploadFile(psdFile, 'psd')
+      statusBox.textContent = 'Uploading background image...'
+      const backgroundImagePresignedUrl = await uploadFile(bgFile, 'image')
+      setStep('upload', 'done')
+
+      setStep('submit', 'active')
+      statusBox.textContent = 'Submitting batch to Workflow Builder...'
+      const { batchId } = await callAction('execute-uc4-workflow', {
+        rows: csv.rows,
+        skuColumnIndex: csv.skuIndex,
+        backgroundImagePresignedUrl,
+        templatePsdPresignedUrl,
+        colorHex: colorPicker.value
+      })
+      if (!batchId) throw new Error('Workflow Builder did not return a batch id.')
+      setStep('submit', 'done')
+
+      const status = await pollStatus(batchId)
+      setStep('process', 'done')
+      setStep('done', 'done')
+
+      const psds = extractUc4OutputPsds(status, { rows: csv.rows, nameIndex: csv.nameIndex })
+      const pngs = extractUc4OutputPngs(status, { rows: csv.rows, nameIndex: csv.nameIndex })
+      if (psds.length === 0) {
+        throw new Error('The workflow completed, but no output PSDs were found.')
+      }
+      statusBox.textContent = `Done — ${psds.length} output PSD(s), ${pngs.length} PNG rendition(s).`
+
+      let delay = 0
+      for (const psd of psds) {
+        const row = document.createElement('div')
+        row.className = 'result-row'
+        row.style.animationDelay = `${delay}ms`; delay += 60
+        const label = document.createElement('span')
+        label.className = 'name'; label.title = psd.name; label.textContent = psd.name
+        const openBtn = document.createElement('button')
+        openBtn.textContent = 'Open .psd'
+        openBtn.onclick = () => parent.postMessage({ pluginMessage: { type: 'open-external', url: psd.url } }, '*')
+        row.appendChild(label); row.appendChild(openBtn)
+        resultsEl.appendChild(row)
+      }
+      // Figma can't import .psd (figma.createImage only takes raster bytes) —
+      // if the batch produced a PNG rendition too, offer to drop that onto
+      // the canvas instead. Fetched via the fetch-asset action (WFB's storage
+      // hosts don't send CORS headers, so a direct browser fetch is blocked).
+      for (const png of pngs) {
+        const row = document.createElement('div')
+        row.className = 'result-row'
+        row.style.animationDelay = `${delay}ms`; delay += 60
+        const label = document.createElement('span')
+        label.className = 'name'; label.title = png.name; label.textContent = png.name
+        const insertBtn = document.createElement('button')
+        insertBtn.className = 'secondary'
+        insertBtn.textContent = 'Insert into Figma'
+        insertBtn.onclick = async () => {
+          insertBtn.disabled = true
+          insertBtn.textContent = 'Inserting...'
+          try {
+            // fetch-asset relays the bytes into our own S3 bucket and hands
+            // back a URL there (CORS-friendly, same bucket presign-upload's
+            // uploads already use) instead of inlining bytes into its own
+            // response — Adobe I/O Runtime web actions cap responses at
+            // ~1MB, and real renditions have come back tens of MB.
+            const { url } = await callAction('fetch-asset', { url: png.url })
+            const res = await fetch(url)
+            if (!res.ok) throw new Error(`Relayed asset fetch failed (${res.status})`)
+            // Uint8Array, not Array.from(...) — postMessage's structured
+            // clone carries typed arrays natively and efficiently. Converting
+            // to a plain Array<number> first was building a many-million-
+            // element boxed-number array for any real-sized image, which
+            // crashed Figma's plugin sandbox outright (confirmed live: a
+            // 15MB PNG aborted the whole plugin VM, not just this action).
+            const bytes = new Uint8Array(await res.arrayBuffer())
+            parent.postMessage({ pluginMessage: { type: 'insert-image', name: png.name, bytes } }, '*')
+            insertBtn.textContent = 'Inserted ✓'
+          } catch (e) {
+            insertBtn.textContent = 'Insert failed'
+            errorEl.textContent = e.message
+          }
+        }
+        row.appendChild(label); row.appendChild(insertBtn)
+        resultsEl.appendChild(row)
+      }
+    } catch (e) {
+      const active = stepsEl.querySelector('.active')
+      if (active) active.classList.replace('active', 'failed')
+      statusBox.textContent = ''
+      errorEl.textContent = e.message
+    } finally {
+      setRunning(false)
+    }
+  })
+
+  window.onmessage = (event) => {
+    const msg = event.data.pluginMessage
+    if (!msg) return
+    if (msg.type === 'settings') {
+      apiBaseUrl = msg.apiBaseUrl || ''
+      apiBaseUrlEl.value = apiBaseUrl
+      if (!apiBaseUrl) el('settingsBox').open = true
+      updateRunEnabled()
+    }
+  }
+
+  parent.postMessage({ pluginMessage: { type: 'load-settings' } }, '*')
+</script>
+</body>
+</html>

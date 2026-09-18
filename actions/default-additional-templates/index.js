@@ -1,10 +1,10 @@
 const { Core } = require('@adobe/aio-sdk')
-const { ok, serverError } = require('../libs/http')
-const { getFreshReadUrl } = require('../libs/s3')
+const { ok, serverError, withCors } = require('../libs/http')
+const { getFreshReadUrl } = require('../libs/storage')
 
-// Uploaded once via a one-off script to these fixed S3 keys — this action only ever
-// re-presigns a fresh read URL for them, it never re-uploads. Order/ids must match
-// web-src/src/components/TemplateGrid/TemplateGrid.js's ADDITIONAL_TEMPLATES.
+// Uploaded once via a one-off script to these fixed storage keys — this action only
+// ever re-presigns a fresh read URL for them, it never re-uploads. Order/ids must
+// match web-src/src/components/TemplateGrid/TemplateGrid.js's ADDITIONAL_TEMPLATES.
 const TEMPLATES = [
   { id: 'tpl-1sku-960x768', fileName: 'UC1 - Promo Card - 1 SKU.psd' },
   { id: 'tpl-1sku-1500x896', fileName: 'UC1-Promo-Card-1-SKU-4x_FS_1500x896.psd' },
@@ -23,9 +23,9 @@ async function main (params) {
     const templates = await Promise.all(TEMPLATES.map(async (t) => ({
       id: t.id,
       fileName: t.fileName,
-      storageType: 'AWS',
+      storageType: 'ADOBE_IO_FILES',
       key: keyFor(t.id),
-      presignedUrl: await getFreshReadUrl(params, keyFor(t.id))
+      presignedUrl: await getFreshReadUrl(keyFor(t.id))
     })))
 
     return ok({ ok: true, templates })
@@ -35,4 +35,4 @@ async function main (params) {
   }
 }
 
-exports.main = main
+exports.main = withCors(main)

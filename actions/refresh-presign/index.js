@@ -1,5 +1,5 @@
-const { ok, badRequest, serverError } = require('../libs/http')
-const { getFreshReadUrl } = require('../libs/s3')
+const { ok, badRequest, serverError, withCors } = require('../libs/http')
+const { getFreshReadUrl } = require('../libs/storage')
 
 async function main (params) {
   const { key } = params
@@ -7,11 +7,11 @@ async function main (params) {
   if (!key) return badRequest('key is required')
 
   try {
-    const presignedUrl = await getFreshReadUrl(params, key)
-    return ok({ ok: true, presignedUrl, storageType: 'AWS' })
+    const presignedUrl = await getFreshReadUrl(key)
+    return ok({ ok: true, presignedUrl, storageType: 'ADOBE_IO_FILES' })
   } catch (e) {
     return serverError(e.message)
   }
 }
 
-exports.main = main
+exports.main = withCors(main)

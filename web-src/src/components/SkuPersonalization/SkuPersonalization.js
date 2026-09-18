@@ -13,7 +13,12 @@ import Uc4Workflow from './Uc4Workflow'
 import LayerCanvas from './LayerCanvas'
 import LayerList from './LayerList'
 import { getPsdManifest, saveComposite } from '../../services/psdService'
+import { exportPsdToCanvas, syncPsdFromCanvas, exportableLayers } from '../../services/figmaCanvasService'
 import { createHistory, historyState, pushHistory, undoHistory, redoHistory, canUndoHistory, canRedoHistory } from '../../utils/layerHistory'
+
+// Only the Figma plugin build has a canvas to export to — the plain web app
+// keeps using the DOM-based LayerCanvas editor below unchanged.
+const IS_FIGMA_PLUGIN = typeof window !== 'undefined' && !!window.__FIGMA_PLUGIN__
 
 function SectionHeading ({ children }) {
   return (
@@ -89,6 +94,9 @@ export default function SkuPersonalization () {
       history: null,
       selectedId: null,
       zoom: 1,
+      figmaFrameId: null,
+      exporting: false,
+      exportError: null,
       saving: false,
       saveError: null,
       downloadUrl: null,
@@ -156,33 +164,82 @@ export default function SkuPersonalization () {
     if (activeDoc) updateDoc(activeDoc.id, (d) => ({ history: redoHistory(d.history), downloadUrl: null, downloadPngUrl: null, downloaded: false }))
   }
 
-  async function handleSave () {
+  // `type` (the manifest's layer type — smartObject, fillLayer, etc.) is needed
+  // by psd-composite to satisfy the Photoshop v2 API's discriminated edit-layer
+  // schema, which requires knowing what *kind* of layer this is in addition to
+  // what operation to apply to it. `name` is included because these layer
+  // `id`s came from a v1 manifest read, and v1/v2 are different pipelines under
+  // the hood — psd-composite targets edits by name instead, since a v1-sourced
+  // id may not resolve to anything in v2.
+  // exportableLayers() drops group ("layerSection") and "background" layers —
+  // see its own comment in services/figmaCanvasService.js for why neither can
+  // carry an explicit transform.
+  function buildEdits (layers, boundsOverridesById) {
+    return exportableLayers(layers).map((l) => {
+      const override = boundsOverridesById?.get(l.id)
+      return {
+        id: l.id,
+        name: l.name,
+        type: l.type,
+        bounds: override ? override.bounds : l.bounds,
+        visible: override ? override.visible : l.visible !== false
+      }
+    })
+  }
+
+  // Locally-uploaded docs have their own S3 key (refreshed since presigned
+  // URLs expire); UC4 workflow-sourced docs don't — use their presignedUrl
+  // as-is (see saveComposite in services/psdService.js).
+  function sourceFor (doc) {
+    return doc.key ? { key: doc.key } : { presignedUrl: doc.presignedUrl }
+  }
+
+  async function saveEdits (doc, edits) {
+    const id = doc.id
+    updateDoc(id, { saving: true, saveError: null })
+    try {
+      const { presignedUrl, pngPresignedUrl } = await saveComposite(sourceFor(doc), edits)
+      updateDoc(id, { downloadUrl: presignedUrl, downloadPngUrl: pngPresignedUrl, downloaded: false, saving: false })
+    } catch (e) {
+      updateDoc(id, { saveError: e.message, saving: false })
+    }
+  }
+
+  function handleSave () {
     if (!activeDoc) return
+    saveEdits(activeDoc, buildEdits(historyState(activeDoc.history)))
+  }
+
+  // Figma-only: turns this doc's layers into real Figma nodes (see
+  // figma-plugin/src/plugin/controller.js) so they can be dragged/resized/
+  // rotated with Figma's own tools instead of the DOM-based LayerCanvas below.
+  async function handleExportToCanvas () {
+    if (!activeDoc) return
+    const id = activeDoc.id
+    updateDoc(id, { exporting: true, exportError: null })
+    try {
+      const frameId = await exportPsdToCanvas({
+        fileName: activeDoc.fileName,
+        document: activeDoc.psdDocument,
+        layers: historyState(activeDoc.history)
+      })
+      updateDoc(id, { figmaFrameId: frameId, exporting: false })
+    } catch (e) {
+      updateDoc(id, { exporting: false, exportError: e.message })
+    }
+  }
+
+  // Figma-only: reads the exported nodes' current position/size/rotation/
+  // visibility back off the canvas, merges it with the layer metadata (name,
+  // type) already on hand, and saves exactly like the non-Figma path does.
+  async function handleSyncAndSave () {
+    if (!activeDoc?.figmaFrameId) return
     const id = activeDoc.id
     updateDoc(id, { saving: true, saveError: null })
     try {
-      // `type` (the manifest's layer type — smartObject, fillLayer, etc.) is
-      // needed by psd-composite to satisfy the Photoshop v2 API's discriminated
-      // edit-layer schema, which requires knowing what *kind* of layer this is
-      // in addition to what operation to apply to it. `name` is included
-      // because these layer `id`s came from a v1 manifest read, and v1/v2 are
-      // different pipelines under the hood — psd-composite targets edits by
-      // name instead, since a v1-sourced id may not resolve to anything in v2.
-      // Group ("layerSection") layers are excluded here the same way LayerCanvas
-      // excludes them from rendering/dragging (see LayerCanvas.js) — their v1
-      // manifest bounds are just the bounding box of their children, not a real
-      // tracked position, and resending that as an explicit v2 custom transform
-      // on a group_layer collapses/mispositions the whole group (and everything
-      // nested inside it) into a blank/transparent result.
-      const edits = historyState(activeDoc.history)
-        .filter((l) => l.type !== 'layerSection')
-        .map((l) => ({ id: l.id, name: l.name, type: l.type, bounds: l.bounds, visible: l.visible !== false }))
-      // Locally-uploaded docs have their own S3 key (refreshed since presigned
-      // URLs expire); UC4 workflow-sourced docs don't — use their presignedUrl
-      // as-is (see saveComposite in services/psdService.js).
-      const source = activeDoc.key ? { key: activeDoc.key } : { presignedUrl: activeDoc.presignedUrl }
-      const { presignedUrl, pngPresignedUrl } = await saveComposite(source, edits)
-      updateDoc(id, { downloadUrl: presignedUrl, downloadPngUrl: pngPresignedUrl, downloaded: false, saving: false })
+      const canvasEdits = await syncPsdFromCanvas(activeDoc.figmaFrameId)
+      const overridesById = new Map(canvasEdits.map((e) => [e.id, e]))
+      await saveEdits(activeDoc, buildEdits(historyState(activeDoc.history), overridesById))
     } catch (e) {
       updateDoc(id, { saveError: e.message, saving: false })
     }
@@ -233,7 +290,7 @@ export default function SkuPersonalization () {
                   everything else (drag/resize/snap/nudge) is computed in
                   (LayerCanvas.js), so interactions stay pixel-accurate at any
                   zoom level instead of a CSS transform faking the zoom visually. */}
-              {hasDocument && (
+              {hasDocument && !IS_FIGMA_PLUGIN && (
                 <Flex alignItems="center" gap="size-50">
                   <ActionButton
                     isQuiet
@@ -263,26 +320,43 @@ export default function SkuPersonalization () {
             </Flex>
             {hasDocument && (
               <Flex gap="size-100" alignItems="center">
-                <Flex gap="size-50">
-                  <ActionButton isQuiet isDisabled={activeDoc.saving || !canUndoHistory(activeDoc.history)} onPress={handleUndo} aria-label="Undo">
-                    <UndoIcon size="S" />
-                  </ActionButton>
-                  <ActionButton isQuiet isDisabled={activeDoc.saving || !canRedoHistory(activeDoc.history)} onPress={handleRedo} aria-label="Redo">
-                    <RedoIcon size="S" />
-                  </ActionButton>
-                </Flex>
+                {!IS_FIGMA_PLUGIN && (
+                  <Flex gap="size-50">
+                    <ActionButton isQuiet isDisabled={activeDoc.saving || !canUndoHistory(activeDoc.history)} onPress={handleUndo} aria-label="Undo">
+                      <UndoIcon size="S" />
+                    </ActionButton>
+                    <ActionButton isQuiet isDisabled={activeDoc.saving || !canRedoHistory(activeDoc.history)} onPress={handleRedo} aria-label="Redo">
+                      <RedoIcon size="S" />
+                    </ActionButton>
+                  </Flex>
+                )}
+                {/* Figma build: layers get edited as real nodes on Figma's own
+                    canvas (see LayerCanvas replacement below), not here — this
+                    button either sends them there, or (once exported) reads
+                    their current position/size/rotation back and saves. */}
                 <Button
                   variant="accent"
                   UNSAFE_style={{ backgroundColor: 'var(--ulta-accent)' }}
-                  UNSAFE_className={`ulta-execute-btn${activeDoc.saving ? ' ulta-executing' : ''}`}
-                  isDisabled={activeDoc.saving}
-                  onPress={handleSave}
+                  UNSAFE_className={`ulta-execute-btn${(activeDoc.saving || activeDoc.exporting) ? ' ulta-executing' : ''}`}
+                  isDisabled={activeDoc.saving || activeDoc.exporting}
+                  onPress={IS_FIGMA_PLUGIN ? (activeDoc.figmaFrameId ? handleSyncAndSave : handleExportToCanvas) : handleSave}
                 >
                   <Flex gap="size-100" alignItems="center">
-                    {activeDoc.saving && <span className="ulta-spinner" aria-hidden="true" />}
-                    <Text>{activeDoc.saving ? 'Saving...' : 'Save Composite'}</Text>
+                    {(activeDoc.saving || activeDoc.exporting) && <span className="ulta-spinner" aria-hidden="true" />}
+                    <Text>
+                      {IS_FIGMA_PLUGIN
+                        ? (activeDoc.figmaFrameId
+                            ? (activeDoc.saving ? 'Syncing & saving...' : 'Sync from Canvas & Save')
+                            : (activeDoc.exporting ? 'Exporting...' : 'Export to Figma Canvas'))
+                        : (activeDoc.saving ? 'Saving...' : 'Save Composite')}
+                    </Text>
                   </Flex>
                 </Button>
+                {IS_FIGMA_PLUGIN && activeDoc.figmaFrameId && (
+                  <ActionButton isQuiet isDisabled={activeDoc.saving || activeDoc.exporting} onPress={handleExportToCanvas} aria-label="Re-export to Figma canvas">
+                    <Text UNSAFE_style={{ fontSize: 12 }}>Re-export</Text>
+                  </ActionButton>
+                )}
                 <DialogTrigger type="modal">
                   <ActionButton isQuiet isDisabled={!activeDoc.downloadPngUrl} aria-label="Preview PNG">
                     <Visibility size="S" />
@@ -322,6 +396,7 @@ export default function SkuPersonalization () {
           </Flex>
 
           {activeDoc?.saveError && <Text UNSAFE_style={{ color: 'var(--spectrum-global-color-red-600)', fontSize: 12 }}>{activeDoc.saveError}</Text>}
+          {activeDoc?.exportError && <Text UNSAFE_style={{ color: 'var(--spectrum-global-color-red-600)', fontSize: 12 }}>{activeDoc.exportError}</Text>}
 
           <Flex direction="row" gap="size-200" flex={1} minHeight={0}>
             {(hasDocument || activeDoc?.manifestLoading) && (
@@ -359,7 +434,10 @@ export default function SkuPersonalization () {
                         onToggleVisible={(layerId) => handleToggleVisible(activeDoc.id, layerId)}
                         onReorder={(nextLayers) => handleReorderLayers(activeDoc.id, nextLayers)}
                         reorderDisabled={!!layerSearch || showOnlyVisible}
-                        disabled={activeDoc.saving}
+                        // Once exported, layer state (position, visibility) lives
+                        // on the Figma canvas — Figma's own layers panel handles
+                        // visibility toggling from here, this list is browsing-only.
+                        disabled={activeDoc.saving || !!activeDoc.figmaFrameId}
                       />
                       )
                     : (
@@ -395,15 +473,45 @@ export default function SkuPersonalization () {
                 <Text UNSAFE_style={{ fontSize: 12, color: 'var(--spectrum-global-color-gray-600)' }}>Upload a PSD to see its layers here.</Text>
               )}
 
-              {/* Every loaded document's canvas stays mounted, just hidden when not
-                  active — switching sidebar items no longer re-fetches/re-decodes
-                  thumbnail images, it's just a CSS toggle. Hidden via visibility
-                  (kept in layout, absolutely positioned over the same spot), not
-                  display:none — display:none elements don't reliably get their
+              {/* Figma build: there's no DOM canvas to preserve across document
+                  switches (see the non-Figma branch below for why that trick
+                  exists) — editing happens on Figma's own canvas instead, this
+                  is just a status readout for whichever document is active. */}
+              {IS_FIGMA_PLUGIN && hasDocument && (
+                <Flex direction="column" alignItems="center" justifyContent="center" gap="size-150" UNSAFE_style={{ height: '100%', textAlign: 'center', padding: '0 24px' }}>
+                  {activeDoc.figmaFrameId
+                    ? (
+                      <>
+                        <Text UNSAFE_style={{ fontSize: 13, fontWeight: 600 }}>Exported to the Figma canvas</Text>
+                        <Text UNSAFE_style={{ fontSize: 12, color: 'var(--spectrum-global-color-gray-700)', maxWidth: 360 }}>
+                          Drag, resize, and rotate the layers directly on the canvas using Figma's own tools.
+                          Toggle a layer's visibility from Figma's own layers panel. When you're done, click
+                          "Sync from Canvas &amp; Save" above to save your changes as a composite.
+                        </Text>
+                      </>
+                      )
+                    : (
+                      <>
+                        <Text UNSAFE_style={{ fontSize: 13, fontWeight: 600 }}>Not yet exported</Text>
+                        <Text UNSAFE_style={{ fontSize: 12, color: 'var(--spectrum-global-color-gray-700)', maxWidth: 360 }}>
+                          Click "Export to Figma Canvas" above to place this PSD's layers onto the canvas as
+                          real, editable Figma nodes.
+                        </Text>
+                      </>
+                      )}
+                </Flex>
+              )}
+
+              {/* Non-Figma (plain web app): every loaded document's canvas stays
+                  mounted, just hidden when not active — switching sidebar items
+                  no longer re-fetches/re-decodes thumbnail images, it's just a
+                  CSS toggle. Hidden via visibility (kept in layout, absolutely
+                  positioned over the same spot), not display:none —
+                  display:none elements don't reliably get their
                   background-image sizing/position computed by the browser, which
                   showed up as a layer rendering blank or misplaced until some
                   unrelated re-render forced a repaint. */}
-              {documents.filter((d) => d.psdDocument).map((doc) => (
+              {!IS_FIGMA_PLUGIN && documents.filter((d) => d.psdDocument).map((doc) => (
                 <div
                   key={doc.id}
                   style={{

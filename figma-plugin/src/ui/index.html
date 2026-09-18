@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Ulta Beauty — Batch Workflow Automation</title>
+  <style>
+    #resize-handle {
+      position: fixed;
+      bottom: 0;
+      right: 0;
+      width: 16px;
+      height: 16px;
+      cursor: nwse-resize;
+      z-index: 9999;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <div id="resize-handle"></div>
+  <script>
+    // Figma plugin windows aren't resizable out of the box — the handle here
+    // relays drag deltas to controller.js, which is the only thread allowed
+    // to call figma.ui.resize.
+    (function () {
+      var handle = document.getElementById('resize-handle')
+      var resizing = false
+      handle.addEventListener('mousedown', function () { resizing = true })
+      document.addEventListener('mousemove', function (event) {
+        if (!resizing) return
+        parent.postMessage({
+          pluginMessage: {
+            type: 'RESIZE_WINDOW',
+            size: { width: Math.max(400, event.clientX), height: Math.max(300, event.clientY) }
+          }
+        }, '*')
+      })
+      document.addEventListener('mouseup', function () { resizing = false })
+    })()
+  </script>
+</body>
+</html>

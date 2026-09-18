@@ -3,8 +3,28 @@ import { Provider, defaultTheme } from "@adobe/react-spectrum";
 import Header, { TABS, hashForTab, tabForHash } from "./Header";
 import SkuCompilation from "./SkuCompilation/SkuCompilation";
 import SkuPersonalization from "./SkuPersonalization/SkuPersonalization";
+import BannerGeneration from "./BannerGeneration/BannerGeneration";
 
 const COLOR_SCHEME_KEY = "ulta-color-scheme";
+
+// Some embedding contexts (e.g. Figma's UI iframe, loaded from a data: URL)
+// disable localStorage entirely and throw a SecurityError on access rather
+// than just being unavailable — guard both the read and the write.
+function readStoredColorScheme () {
+  try {
+    return localStorage.getItem(COLOR_SCHEME_KEY) || "light";
+  } catch {
+    return "light";
+  }
+}
+
+function writeStoredColorScheme (value) {
+  try {
+    localStorage.setItem(COLOR_SCHEME_KEY, value);
+  } catch {
+    // Persistence is best-effort; nothing to do if storage is blocked.
+  }
+}
 
 export default function App() {
   // Route sync (no router library — just two tabs, a hash fragment is plenty):
@@ -12,7 +32,7 @@ export default function App() {
   // real path segment. Initialized from whatever hash the page loaded on,
   // kept in sync on browser back/forward.
   const [activeTab, setActiveTab] = useState(() => tabForHash(window.location.hash));
-  const [colorScheme, setColorScheme] = useState(() => localStorage.getItem(COLOR_SCHEME_KEY) || "light");
+  const [colorScheme, setColorScheme] = useState(readStoredColorScheme);
 
   useEffect(() => {
     function onHashChange () {
@@ -37,18 +57,26 @@ export default function App() {
     setActiveTab(tab);
     const hash = hashForTab(tab);
     if (window.location.hash === hash) return;
-    if (hash) {
-      window.location.hash = hash;
-    } else {
-      // Clears the hash without a "#" left dangling in the address bar.
-      window.history.pushState(null, "", window.location.pathname + window.location.search);
+    // Some embedding contexts (e.g. Figma's UI iframe, a data: URL document
+    // with an opaque origin) reject history/hash mutation outright — the
+    // hash sync is only for bookmarkability/back-forward in a real browser
+    // tab, so just skip it there rather than let it crash the tab switch.
+    try {
+      if (hash) {
+        window.location.hash = hash;
+      } else {
+        // Clears the hash without a "#" left dangling in the address bar.
+        window.history.pushState(null, "", window.location.pathname + window.location.search);
+      }
+    } catch {
+      // Not bookmarkable here, but the tab state above already switched.
     }
   }
 
   function toggleColorScheme () {
     setColorScheme((s) => {
       const next = s === "light" ? "dark" : "light";
-      localStorage.setItem(COLOR_SCHEME_KEY, next);
+      writeStoredColorScheme(next);
       return next;
     });
   }
@@ -64,6 +92,7 @@ export default function App() {
         />
         {activeTab === TABS.COMPILATION && <SkuCompilation />}
         {activeTab === TABS.PERSONALIZATION && <SkuPersonalization />}
+        {activeTab === TABS.BANNER && <BannerGeneration />}
       </div>
     </Provider>
   );

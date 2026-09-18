@@ -15,7 +15,7 @@ function buildWorkflowInputs ({
   return rows.map(row => [
     ...additionalTemplateNodeIds.map((nodeId, i) => ({
       node_id: nodeId,
-      content: { presignedUrl: additionalTemplatePresignedUrls[i], storageType: 'AWS' }
+      content: { presignedUrl: additionalTemplatePresignedUrls[i], storageType: 'ADOBE_IO_FILES' }
     })),
     { node_id: skuNodeId, content: row.sku },
     { node_id: filenameNodeId, content: row.filename },
@@ -23,7 +23,7 @@ function buildWorkflowInputs ({
     { node_id: templateSizeNodeId, content: row.templateSize },
     {
       node_id: templateNodeId,
-      template: { presignedUrl: templatePresignedUrl, storageType: 'AWS' }
+      template: { presignedUrl: templatePresignedUrl, storageType: 'ADOBE_IO_FILES' }
     }
   ])
 }

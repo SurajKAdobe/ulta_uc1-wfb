@@ -1,5 +1,5 @@
 const { Core } = require('@adobe/aio-sdk')
-const { ok, badRequest, serverError } = require('../libs/http')
+const { ok, badRequest, serverError, withCors } = require('../libs/http')
 const { buildWorkflowHeaders } = require('../libs/workflowAuth')
 
 const CANCEL_URL = (batchId) => `https://run-workflow.adobe.io/batch/${batchId}/cancel`
@@ -30,4 +30,4 @@ async function main (params) {
   }
 }
 
-exports.main = main
+exports.main = withCors(main)

@@ -1,5 +1,5 @@
 const { Core } = require('@adobe/aio-sdk')
-const { ok, serverError } = require('../libs/http')
+const { ok, serverError, withCors } = require('../libs/http')
 const { buildWorkflowHeaders } = require('../libs/workflowAuth')
 
 const BATCHES_URL = 'https://run-workflow.adobe.io/batches'
@@ -27,4 +27,4 @@ async function main (params) {
   }
 }
 
-exports.main = main
+exports.main = withCors(main)

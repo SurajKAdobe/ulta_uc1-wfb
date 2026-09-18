@@ -1,16 +1,17 @@
 // Hand-rolled client for the Photoshop v2 API (https://photoshop-api.adobe.io,
-// Firefly Services) — there's no official Adobe SDK for v2 yet. Used only for
-// the save/composite step (psd-composite), which needs v2's transform.angle for
-// rotation — v1's Layer edit schema has no rotation field at all (verified
-// against the SDK's own type defs). The manifest/rendition read path stays on
-// v1 (actions/libs/photoshopClient.js) since that's proven stable; no reason to
-// touch what's working.
+// Firefly Services) — there's no official Adobe SDK for v2 yet. Originally used
+// only for the save/composite step (psd-composite), which needs v2's
+// transform.angle for rotation — v1's Layer edit schema has no rotation field
+// at all (verified against the SDK's own type defs). psd-manifest also moved
+// here once v1 (image.adobe.io) started returning 403 ErrRetired for this
+// account ("This API is being retired and is no longer available to new
+// clients") — v1 is fully gone now, this is the only Photoshop client left.
 //
-// v1's 403 ErrInvalidAPIKey (see actions/psd-manifest history) was sending
-// API_KEY (a legacy key for a different integration) as v2's X-Api-Key. v2
-// lives under a Firefly Services entitlement attached to the OAuth Server-to-
-// Server credential itself — its own client ID is the right X-Api-Key, not
-// API_KEY.
+// v1's 403 ErrInvalidAPIKey (a separate, earlier issue than the retirement
+// above) was sending API_KEY (a legacy key for a different integration) as
+// v2's X-Api-Key. v2 lives under a Firefly Services entitlement attached to
+// the OAuth Server-to-Server credential itself — its own client ID is the
+// right X-Api-Key, not API_KEY.
 const { getAccessToken } = require('./imsAuth')
 
 const BASE_URL = 'https://photoshop-api.adobe.io'

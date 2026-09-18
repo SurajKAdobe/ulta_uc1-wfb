@@ -6,15 +6,15 @@ import { UC4_OUTPUT_PSD_NODE_IDS } from '../workflowConfig'
 // are workflow-agnostic — only batchId matters, reused as-is, no UC4 copy needed).
 // ponytail: switched to an options object once a 4th same-typed (string) param
 // (colorHex) would've made positional args ambiguous to read at the call site.
-export async function runUc4Workflow ({ rows, skuColumnIndex, backgroundImagePresignedUrl, templatePsdPresignedUrl, colorHex }) {
-  return callAction('execute-uc4-workflow', { rows, skuColumnIndex, backgroundImagePresignedUrl, templatePsdPresignedUrl, colorHex })
+export async function runUc4Workflow ({ rows, skuColumnIndex, sizeColumnIndex, backgroundImagePresignedUrl, templatePsdPresignedUrl, colorHex }) {
+  return callAction('execute-uc4-workflow', { rows, skuColumnIndex, sizeColumnIndex, backgroundImagePresignedUrl, templatePsdPresignedUrl, colorHex })
 }
 
 // Display-only — mirrors execute-uc4-workflow's request shape but never sends
 // it, and skips the per-SKU image re-hosting (see preview-uc4-workflow/index.js
 // for why) so previewing is instant and free.
-export async function previewUc4Workflow ({ rows, skuColumnIndex, backgroundImagePresignedUrl, templatePsdPresignedUrl, colorHex }) {
-  return callAction('preview-uc4-workflow', { rows, skuColumnIndex, backgroundImagePresignedUrl, templatePsdPresignedUrl, colorHex })
+export async function previewUc4Workflow ({ rows, skuColumnIndex, sizeColumnIndex, backgroundImagePresignedUrl, templatePsdPresignedUrl, colorHex }) {
+  return callAction('preview-uc4-workflow', { rows, skuColumnIndex, sizeColumnIndex, backgroundImagePresignedUrl, templatePsdPresignedUrl, colorHex })
 }
 
 // Pulls every output PSD across every row execution — unlike UC1's single

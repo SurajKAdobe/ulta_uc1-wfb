@@ -1,5 +1,5 @@
 const { Core } = require('@adobe/aio-sdk')
-const { ok, badRequest, serverError } = require('../libs/http')
+const { ok, badRequest, serverError, withCors } = require('../libs/http')
 const { buildWorkflowHeaders } = require('../libs/workflowAuth')
 
 const WORKFLOW_API_URL = 'https://run-workflow.adobe.io/batch/execute'
@@ -24,7 +24,7 @@ const DEFAULT_COLOR_HEX = '#FFFFFF'
 // file input) doesn't apply here.
 const PRODUCT_IMAGE_URL = (sku) => `https://media.ultainc.com/i/ulta/${sku}`
 
-// The real Workflow Builder graph (updated per WFB fixes) has 4 input nodes:
+// The real Workflow Builder graph (updated per WFB fixes) has 5 input nodes:
 //   1 (UC4_INPUT_IMAGE_NODE_ID)    — a single file — the template PSD the user
 //                                    uploads (see Uc4PsdUpload), reused for every row
 //   3 (UC4_INPUT_ROW_IMAGE_NODE_ID) — array of files (1 entry) — the background
@@ -33,13 +33,16 @@ const PRODUCT_IMAGE_URL = (sku) => `https://media.ultainc.com/i/ulta/${sku}`
 //   4 (UC4_INPUT_COLOR_NODE_ID)    — a text field — hardcoded white hex color
 //   8 (UC4_INPUT_SKU_URLS_NODE_ID) — a text field — comma-separated Ulta CDN
 //                                    product image URLs for the row's SKUs
-function validate ({ rows, skuColumnIndex, backgroundImagePresignedUrl, templatePsdPresignedUrl }, params) {
+//   9 (UC4_INPUT_SIZE_NODE_ID)     — a text field — the CSV's own "Size" column,
+//                                    passed through as-is (see parseUc4Csv)
+function validate ({ rows, skuColumnIndex, sizeColumnIndex, backgroundImagePresignedUrl, templatePsdPresignedUrl }, params) {
   if (!Array.isArray(rows) || rows.length === 0) return 'rows must be a non-empty array of CSV records'
   if (typeof skuColumnIndex !== 'number' || skuColumnIndex < 0) return 'skuColumnIndex is required'
+  if (typeof sizeColumnIndex !== 'number' || sizeColumnIndex < 0) return 'sizeColumnIndex is required'
   if (!backgroundImagePresignedUrl) return 'backgroundImagePresignedUrl is required'
   if (!templatePsdPresignedUrl) return 'templatePsdPresignedUrl is required'
   if (!params.UC4_WORKFLOW_ID) return 'UC4_WORKFLOW_ID is not configured'
-  if (!params.UC4_INPUT_IMAGE_NODE_ID || !params.UC4_INPUT_ROW_IMAGE_NODE_ID || !params.UC4_INPUT_SKU_URLS_NODE_ID || !params.UC4_INPUT_COLOR_NODE_ID) {
+  if (!params.UC4_INPUT_IMAGE_NODE_ID || !params.UC4_INPUT_ROW_IMAGE_NODE_ID || !params.UC4_INPUT_SKU_URLS_NODE_ID || !params.UC4_INPUT_COLOR_NODE_ID || !params.UC4_INPUT_SIZE_NODE_ID) {
     return 'UC4 workflow input node ids are not fully configured'
   }
   return null
@@ -49,7 +52,7 @@ function parseSkus (cell) {
   return String(cell || '').split(',').map((s) => s.trim()).filter(Boolean)
 }
 
-function buildInputs (rows, skuColumnIndex, backgroundImagePresignedUrl, templatePsdPresignedUrl, colorHex, params) {
+function buildInputs (rows, skuColumnIndex, sizeColumnIndex, backgroundImagePresignedUrl, templatePsdPresignedUrl, colorHex, params) {
   const rowImageFile = [{ presignedUrl: backgroundImagePresignedUrl, name: 'background.jpg', storageType: 'AWS' }]
 
   return rows.map((row) => {
@@ -59,20 +62,21 @@ function buildInputs (rows, skuColumnIndex, backgroundImagePresignedUrl, templat
       { node_id: params.UC4_INPUT_IMAGE_NODE_ID, content: { presignedUrl: templatePsdPresignedUrl, storageType: 'AWS' } },
       { node_id: params.UC4_INPUT_ROW_IMAGE_NODE_ID, content: rowImageFile },
       { node_id: params.UC4_INPUT_COLOR_NODE_ID, content: colorHex || DEFAULT_COLOR_HEX },
-      { node_id: params.UC4_INPUT_SKU_URLS_NODE_ID, content: skuUrls }
+      { node_id: params.UC4_INPUT_SKU_URLS_NODE_ID, content: skuUrls },
+      { node_id: params.UC4_INPUT_SIZE_NODE_ID, content: row[sizeColumnIndex] || '' }
     ]
   })
 }
 
 async function main (params) {
   const logger = Core.Logger('execute-uc4-workflow', { level: params.LOG_LEVEL || 'info' })
-  const { rows, skuColumnIndex, backgroundImagePresignedUrl, templatePsdPresignedUrl, colorHex } = params
+  const { rows, skuColumnIndex, sizeColumnIndex, backgroundImagePresignedUrl, templatePsdPresignedUrl, colorHex } = params
 
-  const validationError = validate({ rows, skuColumnIndex, backgroundImagePresignedUrl, templatePsdPresignedUrl }, params)
+  const validationError = validate({ rows, skuColumnIndex, sizeColumnIndex, backgroundImagePresignedUrl, templatePsdPresignedUrl }, params)
   if (validationError) return badRequest(validationError)
 
   try {
-    const inputs = buildInputs(rows, skuColumnIndex, backgroundImagePresignedUrl, templatePsdPresignedUrl, colorHex, params)
+    const inputs = buildInputs(rows, skuColumnIndex, sizeColumnIndex, backgroundImagePresignedUrl, templatePsdPresignedUrl, colorHex, params)
 
     const response = await fetch(WORKFLOW_API_URL, {
       method: 'POST',
@@ -96,4 +100,4 @@ async function main (params) {
   }
 }
 
-exports.main = main
+exports.main = withCors(main)

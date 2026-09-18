@@ -81,19 +81,19 @@ export default function CsvUpload ({ value, isUploading, error, disabled, onSele
 
       {value && (
         <View borderWidth="thin" borderColor="gray-300" borderRadius="medium" padding="size-200" UNSAFE_className="ulta-fade-in">
-          <Flex direction="row" justifyContent="space-between" alignItems="center">
+          <Flex direction="row" wrap justifyContent="space-between" alignItems="start" gap="size-100">
             <Flex direction="column">
-              <Flex direction="row" alignItems="center" gap="size-100">
+              <Flex direction="row" alignItems="start" gap="size-100">
                 <Text UNSAFE_style={{ fontWeight: 600 }}>✓ {value.fileName}</Text>
                 {value.recordCount != null && (
-                  <span className="ulta-pill">{value.recordCount} records</span>
+                  <span className="ulta-pill" style={{ flexShrink: 0, marginTop: 3 }}>{value.recordCount} records</span>
                 )}
               </Flex>
               <Text UNSAFE_style={{ fontSize: 12, color: 'var(--spectrum-global-color-gray-600)' }}>
                 {formatSize(value.size)}
               </Text>
             </Flex>
-            <Flex gap="size-100" alignItems="center">
+            <Flex gap="size-100" alignItems="center" wrap>
               {hasPreview && (
                 // Always interactive, even mid-execution — viewing what was submitted
                 // shouldn't be blocked just because Replace/Remove are (that would

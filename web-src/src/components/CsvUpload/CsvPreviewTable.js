@@ -7,9 +7,8 @@ const PAGE_SIZE = 8
 const DEFAULT_COL_WIDTH = 160
 const MIN_COL_WIDTH = 60
 
-// Resizable, paginated CSV preview table — pulled out of CsvUpload.js so UC1's
-// inline preview and UC4's full-view popup (Uc4CsvUpload.js) render the exact
-// same table instead of two hand-rolled copies.
+// Resizable, paginated CSV preview table — pulled out of CsvUpload.js so UC1,
+// UC4, and UC2B all render the exact same table instead of hand-rolled copies.
 // resetKey: pass something that changes when a new file is loaded (e.g.
 // `${fileName}-${size}`) so paging/column widths don't carry over from the
 // previous file.

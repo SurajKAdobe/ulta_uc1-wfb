@@ -12,17 +12,19 @@ import BatchHistory from "./BatchHistory/BatchHistory";
 export const TABS = {
   COMPILATION: "compilation",
   PERSONALIZATION: "personalization",
+  BANNER: "banner",
 };
 
-// No router library for two tabs — a hash fragment (#/uc4), not a real path
-// segment. A real pushState path (e.g. plain "/uc4") 404s ("Cannot GET /uc4")
-// on refresh/direct-navigation unless the host server rewrites unknown paths
-// back to index.html, which isn't something this app's dev/deploy setup does.
-// A hash fragment is never sent to the server at all, so it can't 404 no
-// matter how the app is hosted.
+// No router library for three tabs — a hash fragment (#/uc4, #/uc2b), not a
+// real path segment. A real pushState path (e.g. plain "/uc4") 404s ("Cannot
+// GET /uc4") on refresh/direct-navigation unless the host server rewrites
+// unknown paths back to index.html, which isn't something this app's dev/
+// deploy setup does. A hash fragment is never sent to the server at all, so
+// it can't 404 no matter how the app is hosted.
 const TAB_HASHES = {
   [TABS.COMPILATION]: "",
   [TABS.PERSONALIZATION]: "#/uc4",
+  [TABS.BANNER]: "#/uc2b",
 };
 
 export function hashForTab (tab) {
@@ -31,6 +33,7 @@ export function hashForTab (tab) {
 
 export function tabForHash (hash) {
   if (hash === "#/uc4") return TABS.PERSONALIZATION;
+  if (hash === "#/uc2b") return TABS.BANNER;
   return TABS.COMPILATION;
 }
 
@@ -65,6 +68,7 @@ export default function Header({ activeTab, onTabChange, colorScheme, onToggleCo
             <TabList>
               <Item key={TABS.COMPILATION}>UC1 · SKU Compilation</Item>
               <Item key={TABS.PERSONALIZATION}>UC4 · SKU Personalization</Item>
+              <Item key={TABS.BANNER}>UC2B · Banner Generation</Item>
             </TabList>
           </Tabs>
         </Flex>

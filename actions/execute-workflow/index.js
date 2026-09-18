@@ -1,5 +1,5 @@
 const { Core } = require('@adobe/aio-sdk')
-const { ok, badRequest, serverError } = require('../libs/http')
+const { ok, badRequest, serverError, withCors } = require('../libs/http')
 const { buildWorkflowInputs } = require('../libs/workflowPayload')
 const { buildWorkflowHeaders } = require('../libs/workflowAuth')
 
@@ -45,7 +45,7 @@ async function main (params) {
     const data = await response.json().catch(() => null)
 
     if (!response.ok) {
-      logger.error(`Workflow Builder returned ${response.status}`)
+      logger.error(`Workflow Builder returned ${response.status}: ${JSON.stringify(data)}`)
       return serverError('Workflow execution failed. We were unable to submit the workflow. Please try again.')
     }
 
@@ -56,4 +56,4 @@ async function main (params) {
   }
 }
 
-exports.main = main
+exports.main = withCors(main)

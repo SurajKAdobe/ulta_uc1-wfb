@@ -1,0 +1,21 @@
+{
+  "name": "Ulta Beauty — Batch Workflow Automation",
+  "id": "0000000000000000000",
+  "api": "1.0.0",
+  "main": "dist/code.js",
+  "ui": "dist/ui.html",
+  "editorType": ["figma"],
+  "networkAccess": {
+    "allowedDomains": [
+      "https://*.adobeio-static.net",
+      "https://*.azureedge.net",
+      "https://*.blob.core.windows.net"
+    ],
+    "devAllowedDomains": [
+      "https://localhost:9080",
+      "https://*.azureedge.net",
+      "https://*.adobeio-static.net",
+      "https://*.blob.core.windows.net"
+    ]
+  }
+}

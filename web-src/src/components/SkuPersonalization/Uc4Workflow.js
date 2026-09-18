@@ -3,7 +3,7 @@ import { Flex, Heading, Text, Button, View, ActionButton } from '@adobe/react-sp
 import ChevronUp from '@spectrum-icons/workflow/ChevronUp'
 import ChevronDown from '@spectrum-icons/workflow/ChevronDown'
 import Checkmark from '@spectrum-icons/workflow/Checkmark'
-import Uc4CsvUpload from './Uc4CsvUpload'
+import CsvUpload from '../CsvUpload/CsvUpload'
 import Uc4ImageUpload from './Uc4ImageUpload'
 import Uc4PsdUpload from './Uc4PsdUpload'
 import Uc4ColorPicker from './Uc4ColorPicker'
@@ -57,13 +57,13 @@ function SummaryChip ({ label, swatch }) {
 // Workflow Builder batch, poll to completion. Step 3 (feeding the resulting
 // PSDs into the resize/rotate editor) is the parent's job — see onOutputPsds.
 //
-// All 4 of the workflow's input nodes are wired server-side (see actions/
+// All 5 of the workflow's input nodes are wired server-side (see actions/
 // execute-uc4-workflow/index.js): this uploaded template PSD, per-SKU product
 // images (derived from Ulta's product image CDN), this uploaded background
 // image (reused for every row — the CSV's own image-url column points at a
-// protected asset our backend can't fetch), and this picked color (white by
-// default). Batch submit/poll/extract is real and already wired to the same
-// run-workflow.adobe.io platform UC1 uses.
+// protected asset our backend can't fetch), this picked color (white by
+// default), and the CSV's own "Size" column. Batch submit/poll/extract is
+// real and already wired to the same run-workflow.adobe.io platform UC1 uses.
 export default function Uc4Workflow ({ onOutputPsds, onRunningChange }) {
   const [csv, setCsv] = useState(null)
   const [csvUploading, setCsvUploading] = useState(false)
@@ -121,7 +121,8 @@ export default function Uc4Workflow ({ onOutputPsds, onRunningChange }) {
         previewRows: preview.rows,
         rows: preview.rows,
         skuIndex: preview.skuIndex,
-        nameIndex: preview.nameIndex
+        nameIndex: preview.nameIndex,
+        sizeIndex: preview.sizeIndex
       })
     } catch (e) {
       setCsvError(e.message)
@@ -211,6 +212,7 @@ export default function Uc4Workflow ({ onOutputPsds, onRunningChange }) {
       const result = await runUc4Workflow({
         rows: csv.rows,
         skuColumnIndex: csv.skuIndex,
+        sizeColumnIndex: csv.sizeIndex,
         backgroundImagePresignedUrl: backgroundImage.presignedUrl,
         templatePsdPresignedUrl: templatePsd.presignedUrl,
         colorHex
@@ -246,6 +248,7 @@ export default function Uc4Workflow ({ onOutputPsds, onRunningChange }) {
             isReady={!!csv}
             rows={csv?.rows}
             skuColumnIndex={csv?.skuIndex}
+            sizeColumnIndex={csv?.sizeIndex}
             backgroundImagePresignedUrl={backgroundImage?.presignedUrl}
             templatePsdPresignedUrl={templatePsd?.presignedUrl}
             colorHex={colorHex}
@@ -274,7 +277,7 @@ export default function Uc4Workflow ({ onOutputPsds, onRunningChange }) {
 
       {!collapsed && (
         <>
-          <Uc4CsvUpload
+          <CsvUpload
             value={csv}
             isUploading={csvUploading}
             error={csvError}

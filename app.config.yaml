@@ -12,11 +12,6 @@ application:
             runtime: nodejs:20
             inputs:
               LOG_LEVEL: info
-              S3_PRESIGN_URL: $S3_PRESIGN_URL
-              S3_ACCESS_KEY: $S3_ACCESS_KEY
-              S3_SECRET_KEY: $S3_SECRET_KEY
-              S3_BUCKET: $S3_BUCKET
-              S3_REGION: $S3_REGION
             annotations:
               require-adobe-auth: false
               final: true
@@ -116,11 +111,6 @@ application:
             runtime: nodejs:20
             inputs:
               LOG_LEVEL: info
-              S3_PRESIGN_URL: $S3_PRESIGN_URL
-              S3_ACCESS_KEY: $S3_ACCESS_KEY
-              S3_SECRET_KEY: $S3_SECRET_KEY
-              S3_BUCKET: $S3_BUCKET
-              S3_REGION: $S3_REGION
             annotations:
               require-adobe-auth: false
               final: true
@@ -131,11 +121,19 @@ application:
             runtime: nodejs:20
             inputs:
               LOG_LEVEL: info
-              S3_PRESIGN_URL: $S3_PRESIGN_URL
-              S3_ACCESS_KEY: $S3_ACCESS_KEY
-              S3_SECRET_KEY: $S3_SECRET_KEY
-              S3_BUCKET: $S3_BUCKET
-              S3_REGION: $S3_REGION
+            annotations:
+              require-adobe-auth: false
+              final: true
+
+          # One-off local-dev seeding action — see actions/seed-default-assets/index.js.
+          # Only has real files to seed when run via `aio app dev` (psds/ and
+          # web-src/src/assets/ aren't bundled into a deployed action).
+          seed-default-assets:
+            function: actions/seed-default-assets/index.js
+            web: 'yes'
+            runtime: nodejs:20
+            inputs:
+              LOG_LEVEL: info
             annotations:
               require-adobe-auth: false
               final: true
@@ -157,9 +155,11 @@ application:
               require-adobe-auth: false
               final: true
 
-          # SKU Personalization — both call the Photoshop API (actions/libs/photoshopClient.js),
+          # SKU Personalization — both call the Photoshop API v2 (actions/libs/photoshopV2.js),
           # reusing the same IMS OAuth Server-to-Server credential as run-workflow.adobe.io above.
-          # That credential's Developer Console project needs the "Photoshop API" added to it.
+          # v2 lives under a Firefly Services entitlement on that credential, not the legacy
+          # "Photoshop API" one v1 used (v1 is retired for this account as of the psd-manifest
+          # migration below).
           psd-manifest:
             function: actions/psd-manifest/index.js
             web: 'yes'
@@ -173,13 +173,6 @@ application:
               IMS_OAUTH_S2S_CLIENT_SECRET: $IMS_OAUTH_S2S_CLIENT_SECRET
               IMS_OAUTH_S2S_ORG_ID: $IMS_OAUTH_S2S_ORG_ID
               IMS_OAUTH_S2S_SCOPES: $IMS_OAUTH_S2S_SCOPES
-              # Needed to presign one S3 destination per layer rendition (see
-              # actions/psd-manifest/index.js) — same presign proxy as presign-upload.
-              S3_PRESIGN_URL: $S3_PRESIGN_URL
-              S3_ACCESS_KEY: $S3_ACCESS_KEY
-              S3_SECRET_KEY: $S3_SECRET_KEY
-              S3_BUCKET: $S3_BUCKET
-              S3_REGION: $S3_REGION
             annotations:
               require-adobe-auth: false
               final: true
@@ -222,6 +215,7 @@ application:
               UC4_INPUT_ROW_IMAGE_NODE_ID: $UC4_INPUT_ROW_IMAGE_NODE_ID
               UC4_INPUT_SKU_URLS_NODE_ID: $UC4_INPUT_SKU_URLS_NODE_ID
               UC4_INPUT_COLOR_NODE_ID: $UC4_INPUT_COLOR_NODE_ID
+              UC4_INPUT_SIZE_NODE_ID: $UC4_INPUT_SIZE_NODE_ID
             annotations:
               require-adobe-auth: false
               final: true
@@ -239,6 +233,44 @@ application:
               UC4_INPUT_ROW_IMAGE_NODE_ID: $UC4_INPUT_ROW_IMAGE_NODE_ID
               UC4_INPUT_SKU_URLS_NODE_ID: $UC4_INPUT_SKU_URLS_NODE_ID
               UC4_INPUT_COLOR_NODE_ID: $UC4_INPUT_COLOR_NODE_ID
+              UC4_INPUT_SIZE_NODE_ID: $UC4_INPUT_SIZE_NODE_ID
+            annotations:
+              require-adobe-auth: false
+              final: true
+
+          # UC2B banner generation — CSV + PSD template in, one Workflow Builder
+          # execution total (not one per row like UC1/UC4 — see
+          # actions/execute-uc2b-workflow/index.js).
+          execute-uc2b-workflow:
+            function: actions/execute-uc2b-workflow/index.js
+            web: 'yes'
+            runtime: nodejs:20
+            inputs:
+              LOG_LEVEL: info
+              API_KEY: $API_KEY
+              IMS_USER_ID: $IMS_USER_ID
+              IMS_OAUTH_S2S_CLIENT_ID: $IMS_OAUTH_S2S_CLIENT_ID
+              IMS_OAUTH_S2S_CLIENT_SECRET: $IMS_OAUTH_S2S_CLIENT_SECRET
+              IMS_OAUTH_S2S_ORG_ID: $IMS_OAUTH_S2S_ORG_ID
+              IMS_OAUTH_S2S_SCOPES: $IMS_OAUTH_S2S_SCOPES
+              UC2B_WORKFLOW_ID: $UC2B_WORKFLOW_ID
+              UC2B_INPUT_CSV_NODE_ID: $UC2B_INPUT_CSV_NODE_ID
+              UC2B_INPUT_TEMPLATE_NODE_ID: $UC2B_INPUT_TEMPLATE_NODE_ID
+            annotations:
+              require-adobe-auth: false
+              final: true
+
+          # Display-only mirror of execute-uc2b-workflow's request shape — never
+          # calls Workflow Builder, instant and free (no files to re-host).
+          preview-uc2b-workflow:
+            function: actions/preview-uc2b-workflow/index.js
+            web: 'yes'
+            runtime: nodejs:20
+            inputs:
+              LOG_LEVEL: info
+              UC2B_WORKFLOW_ID: $UC2B_WORKFLOW_ID
+              UC2B_INPUT_CSV_NODE_ID: $UC2B_INPUT_CSV_NODE_ID
+              UC2B_INPUT_TEMPLATE_NODE_ID: $UC2B_INPUT_TEMPLATE_NODE_ID
             annotations:
               require-adobe-auth: false
               final: true

@@ -1,16 +1,67 @@
 const { Core } = require('@adobe/aio-sdk')
-const { ok, badRequest, serverError } = require('../libs/http')
-const { getClient } = require('../libs/photoshopClient')
-const { getUploadUrls } = require('../libs/s3')
+const { ok, badRequest, serverError, withCors } = require('../libs/http')
+const { runJob } = require('../libs/photoshopV2')
+const { getUploadUrls } = require('../libs/storage')
+
+// v1 (image.adobe.io, actions/libs/photoshopClient.js) is retired — this account's
+// credential now gets a 403 ErrRetired from it ("This API is being retired and is
+// no longer available to new clients"). Moved to v2 (photoshop-api.adobe.io,
+// actions/libs/photoshopV2.js), same client psd-composite already uses.
 
 // ponytail: caps the extra rendition job's size/latency rather than requesting one
 // per layer no matter how many there are — raise if a real PSD needs more visible+
 // nameable layers previewed at once than this.
 const MAX_RENDITIONS = 25
+const MANIFEST_JOB_TIMEOUT_MS = 60000
+const RENDITION_JOB_TIMEOUT_MS = 45000
+
+// v2's /v2/generate-manifest response uses an entirely different vocabulary than
+// v1 did: no `bounds` field at all (position/size live under `compositeFrame.
+// absolute` as {left,top,right,bottom}), snake_case `type` values, and rotation
+// as a top-level `rotation` number rather than `rotate`. Every other consumer of
+// this action's output — web-src/src/utils/psdLayers.mjs (which already has a
+// bounds-shape shim anticipating exactly this), LayerCanvas.js, LayerList.js,
+// SkuPersonalization.js, and psd-composite's own V2_LAYER_TYPE map for the write
+// side — is built against v1's shape. Normalizing back to that shape here, once,
+// keeps the v2/v1 vocabulary difference contained to this one action instead of
+// rippling through the frontend and psd-composite.
+const V1_LAYER_TYPE = {
+  smart_object_layer: 'smartObject',
+  text_layer: 'textLayer',
+  adjustment_layer: 'adjustmentLayer',
+  solid_color_layer: 'fillLayer',
+  group_layer: 'layerSection',
+  background_layer: 'background',
+  artboard: 'layerSection' // no v1 analog; closest fit for "is a container"
+}
+
+function toV1Bounds (frame) {
+  if (!frame) return null
+  const { left, top, right, bottom } = frame
+  if (left == null || top == null || right == null || bottom == null) return null
+  return { left, top, width: right - left, height: bottom - top }
+}
+
+function normalizeLayers (layers) {
+  return (layers || []).map((layer) => ({
+    ...layer,
+    type: V1_LAYER_TYPE[layer.type] || layer.type,
+    bounds: toV1Bounds(layer.compositeFrame?.absolute),
+    rotate: layer.rotation || 0,
+    children: layer.children ? normalizeLayers(layer.children) : layer.children
+  }))
+}
+
+function normalizeDocument (document) {
+  if (!document) return document
+  const bounds = toV1Bounds(document.bounds)
+  return bounds ? { ...document, width: bounds.width, height: bounds.height } : document
+}
 
 // Same tree walk as web-src/src/utils/psdLayers.mjs's flattenLayers, duplicated
 // here in CommonJS (this runs server-side, that's an ES module for the bundler) —
-// just enough to know which layers are worth spending a rendition call on.
+// just enough to know which layers are worth spending a rendition call on. Runs
+// against the already-normalized (v1-shaped) tree.
 function flattenRenderable (layers, out = []) {
   for (const layer of layers || []) {
     if (layer.bounds && layer.type !== 'layerSection') out.push(layer)
@@ -21,10 +72,10 @@ function flattenRenderable (layers, out = []) {
 
 // Reads just the PNG header (signature + IHDR chunk) via a byte-range request
 // to get the rendition's *actual* pixel dimensions, rather than assuming one
-// shape — createRendition's real behavior here has flip-flopped between "full
-// document canvas, this layer's pixels placed at their real position" and
-// (with trimToCanvas explicitly set) a tight per-layer crop, and guessing wrong
-// either way silently breaks the preview. Ground truth beats another guess.
+// shape — create-composite's real behavior here has flip-flopped between "full
+// document canvas, this layer's pixels placed at their real position" and a
+// tight per-layer crop depending on cropMode, and guessing wrong either way
+// silently breaks the preview. Ground truth beats another guess.
 async function probePngSize (url) {
   const response = await fetch(url, { headers: { Range: 'bytes=0-33' } })
   if (!response.ok) return null
@@ -39,39 +90,28 @@ async function probePngSize (url) {
 // not how it looks scaled and cropped into its actual on-canvas placement. Request
 // a real rendition per layer instead, so the canvas preview matches the real PSD.
 //
-// One createRendition call per layer, run in parallel — not one call with N
-// outputs. Tried the single-job/multi-output form first: in practice the API only
-// reliably fulfilled the first output and silently failed the rest, so this is
-// the shape that's actually been observed to work for more than one layer.
-async function fetchLayerRenditions (client, params, presignedUrl, renderableLayers, documentSize, logger) {
+// One create-composite call per layer, run in parallel — not one call with N
+// outputs. Tried the single-job/multi-output form first (on v1's createRendition):
+// in practice the API only reliably fulfilled the first output and silently failed
+// the rest, so this is the shape that's actually been observed to work for more
+// than one layer. cropMode: 'document_bounds' asks for this one layer composited
+// at its real position within the full canvas (not cropped to its own bounds) —
+// verified by probePngSize below, not assumed.
+async function fetchLayerRenditions (presignedUrl, renderableLayers, documentSize, logger, params) {
   const targets = renderableLayers.slice(0, MAX_RENDITIONS)
   if (targets.length === 0) return new Map()
 
   const results = await Promise.allSettled(targets.map(async (layer) => {
-    const { putUrl, getUrl } = await getUploadUrls(params, `uploads/psd-rendition/${Date.now()}-${layer.id}.png`)
-    const job = await client.createRendition(
-      { href: presignedUrl, storage: 'external' },
-      // trimToCanvas: false asks for the layer's own tight crop (per the SDK's
-      // Output typedef) — previously left unset, which in practice still came
-      // back full-canvas-sized. Explicit here in case that only takes effect
-      // when the field is actually present. Verified either way by probePngSize
-      // below, not assumed.
-      //
-      // ponytail: no `width` upscale request here (tried it — asking a small
-      // layer's tight crop to render at a much bigger width, e.g. requesting
-      // 1920px for a 77px-wide layer, came back blank rather than upscaled;
-      // background-sized layers survived a modest upscale, small ones didn't
-      // survive an extreme one). Renders come back at whatever size Photoshop
-      // naturally produces for the crop; resizing a layer well past that in the
-      // canvas will look soft. Revisit with a *per-layer* modest multiplier
-      // (not a single value shared by every layer regardless of its own size)
-      // if that's worth solving later.
-      [{ href: putUrl, storage: 'external', type: 'image/png', trimToCanvas: false, layers: [{ id: layer.id }] }]
-    )
-    const jobOutput = job.outputs?.[0]
-    if (jobOutput?.status !== 'succeeded') {
-      throw new Error(`status ${jobOutput?.status}: ${JSON.stringify(jobOutput?.errors)}`)
-    }
+    const { putUrl, getUrl } = await getUploadUrls(`uploads/psd-rendition/${Date.now()}-${layer.id}.png`)
+    await runJob('/v2/create-composite', {
+      image: { source: { url: presignedUrl } },
+      outputs: [{
+        destination: { url: putUrl },
+        mediaType: 'image/png',
+        layers: [{ id: layer.id }],
+        cropMode: 'document_bounds'
+      }]
+    }, params, RENDITION_JOB_TIMEOUT_MS)
 
     const size = await probePngSize(getUrl).catch(() => null)
     const isFullCanvas = !size || (
@@ -114,28 +154,29 @@ async function main (params) {
   if (!presignedUrl) return badRequest('presignedUrl is required')
 
   try {
-    const client = await getClient(params)
-    const job = await client.getDocumentManifest(
-      { href: presignedUrl, storage: 'external' },
-      { thumbnails: { type: 'image/png' } }
-    )
-    await job.pollUntilDone()
+    // generate-manifest writes its result to a destination URL rather than
+    // returning it inline in the job status (unlike v1's SDK, which handed the
+    // manifest back as part of the job object itself) — mint a short-lived
+    // put/get pair to receive it, then read it straight back.
+    const { putUrl: manifestPutUrl, getUrl: manifestGetUrl } = await getUploadUrls(`uploads/psd-manifest-json/${Date.now()}.json`)
 
-    const output = job.outputs?.[0]
-    if (output?.status !== 'succeeded') {
-      logger.error(`Manifest job did not succeed: ${JSON.stringify(output?.errors)}`)
-      return serverError('Photoshop could not read this PSD file.')
+    await runJob('/v2/generate-manifest', {
+      image: { source: { url: presignedUrl } },
+      outputs: [{ destination: { url: manifestPutUrl }, mediaType: 'application/json' }]
+    }, params, MANIFEST_JOB_TIMEOUT_MS)
+
+    const manifestResponse = await fetch(manifestGetUrl)
+    if (!manifestResponse.ok) {
+      throw new Error(`Could not read generated manifest (${manifestResponse.status})`)
     }
-
-    // The real API response uses "layers" (plural) — @adobe/aio-lib-photoshop-api's
-    // own JobOutput JSDoc typedef documents it as "layer" (singular), which doesn't
-    // match and always came back undefined. Falling back to .layer just in case.
-    const rawLayers = output.layers || output.layer
+    const manifest = await manifestResponse.json()
+    const document = normalizeDocument(manifest.document)
+    const rawLayers = normalizeLayers(manifest.layers || manifest.layer)
 
     let renditionById = new Map()
     try {
       const renderable = flattenRenderable(rawLayers)
-      renditionById = await fetchLayerRenditions(client, params, presignedUrl, renderable, output.document, logger)
+      renditionById = await fetchLayerRenditions(presignedUrl, renderable, document, logger, params)
     } catch (e) {
       // A rendition is a preview-quality upgrade, not required to use the tool at
       // all — fall back to the manifest's own (less accurate) thumbnails rather
@@ -143,11 +184,11 @@ async function main (params) {
       logger.error(`Layer rendition job failed, falling back to manifest thumbnails: ${e.message}`)
     }
 
-    return ok({ ok: true, document: output.document, layers: applyRenditions(rawLayers, renditionById) })
+    return ok({ ok: true, document, layers: applyRenditions(rawLayers, renditionById) })
   } catch (e) {
     logger.error(e.message)
     return serverError('Failed to read the PSD layer manifest. Please try again.')
   }
 }
 
-exports.main = main
+exports.main = withCors(main)

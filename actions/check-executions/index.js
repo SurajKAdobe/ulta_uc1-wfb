@@ -1,5 +1,5 @@
 const { Core } = require('@adobe/aio-sdk')
-const { ok, badRequest, serverError } = require('../libs/http')
+const { ok, badRequest, serverError, withCors } = require('../libs/http')
 const { buildWorkflowHeaders } = require('../libs/workflowAuth')
 const { stripBloat } = require('../libs/slimStatus')
 
@@ -31,4 +31,4 @@ async function main (params) {
   }
 }
 
-exports.main = main
+exports.main = withCors(main)

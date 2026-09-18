@@ -176,12 +176,17 @@ export default function LayerCanvas ({ psdDocument, layers, selectedId, onSelect
   const canvasWidth = psdDocument.width * scale
   const canvasHeight = psdDocument.height * scale
 
-  // The manifest lists layers topmost-first (Photoshop's own Layers-panel order),
-  // but later DOM siblings paint over earlier ones — rendering in manifest order put
-  // full-canvas background layers on top of everything, hiding the real content
-  // underneath. Reverse so the bottom of the stack paints first. Group/section
-  // layers are skipped here too — their thumbnail is a render of their own
-  // children, so they'd otherwise cover those same children with a duplicate.
+  // Later DOM siblings paint over earlier ones, so this needs to be in real
+  // Photoshop stacking order (back to front) — but "manifest array order"
+  // doesn't reliably mean that: v1 listed layers topmost-first, v2 lists them
+  // bottom-first (ascending `index`), and relying on either convention just
+  // flips which one silently paints a full-canvas background layer on top of
+  // everything again. `index` is Photoshop's own numeric stacking position
+  // (lower = further back) and is stable regardless of which API version or
+  // tree-walk order produced this array — sort by it directly instead of
+  // trusting array order. Group/section layers are skipped here too — their
+  // thumbnail is a render of their own children, so they'd otherwise cover
+  // those same children with a duplicate.
   // Layers hidden in the source PSD (layer.visible === false) are skipped rather
   // than dimmed — templates like this one keep several alternate-SKU candidates
   // stacked in the same overlapping slot, all hidden by default; showing them all
@@ -189,7 +194,7 @@ export default function LayerCanvas ({ psdDocument, layers, selectedId, onSelect
   // list (LayerList's checkbox) to bring it into the preview.
   const renderableLayers = layers
     .filter((l) => l.type !== 'layerSection' && l.visible !== false)
-    .reverse()
+    .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
 
   // Snaps a drag position to the canvas's own center guide (horizontal and/or
   // vertical independently) whenever the box's center lands within

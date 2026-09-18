@@ -7,10 +7,12 @@
     "predev": "node scripts/kill-port.js 9080 35729",
     "dev": "node scripts/run-dev.js",
     "run": "aio app run",
-    "deploy": "aio app deploy"
+    "deploy": "aio app deploy",
+    "figma:build": "webpack --config figma-plugin/webpack.config.js --mode=production",
+    "figma:watch": "webpack --config figma-plugin/webpack.config.js --mode=development --watch"
   },
   "dependencies": {
-    "@adobe/aio-lib-photoshop-api": "^1.1.0",
+    "@adobe/aio-lib-files": "^4.1.4",
     "@adobe/aio-sdk": "^6.0.0",
     "@adobe/react-spectrum": "^3.0.0",
     "@spectrum-icons/workflow": "^4.0.0",
@@ -18,5 +20,18 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-rnd": "^10.5.3"
+  },
+  "devDependencies": {
+    "@babel/core": "^8.0.1",
+    "@babel/preset-env": "^8.0.2",
+    "@babel/preset-react": "^8.0.1",
+    "@figma/plugin-typings": "^1.137.0",
+    "@ljharb/tsconfig": "^0.3.2",
+    "babel-loader": "^10.1.1",
+    "css-loader": "^7.1.5",
+    "html-webpack-plugin": "^5.6.8",
+    "style-loader": "^4.0.0",
+    "webpack": "^5.110.3",
+    "webpack-cli": "^7.2.3"
   }
 }

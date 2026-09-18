@@ -1,6 +1,6 @@
 const { nanoid } = require('nanoid')
-const { ok, badRequest, serverError } = require('../libs/http')
-const { getUploadUrls } = require('../libs/s3')
+const { ok, badRequest, serverError, withCors } = require('../libs/http')
+const { getUploadUrls } = require('../libs/storage')
 
 const ALLOWED_KINDS = new Set(['csv', 'psd', 'image', 'png'])
 
@@ -21,11 +21,11 @@ async function main (params) {
   const relativePath = `uploads/${kind}/${Date.now()}-${nanoid(8)}-${sanitizeFileName(fileName)}`
 
   try {
-    const { putUrl, getUrl } = await getUploadUrls(params, relativePath)
-    return ok({ ok: true, putUrl, getUrl, storageType: 'AWS', key: relativePath })
+    const { putUrl, getUrl } = await getUploadUrls(relativePath)
+    return ok({ ok: true, putUrl, getUrl, storageType: 'ADOBE_IO_FILES', key: relativePath })
   } catch (e) {
     return serverError(e.message)
   }
 }
 
-exports.main = main
+exports.main = withCors(main)

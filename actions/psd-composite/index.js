@@ -1,5 +1,5 @@
 const { Core } = require('@adobe/aio-sdk')
-const { ok, badRequest, serverError } = require('../libs/http')
+const { ok, badRequest, serverError, withCors } = require('../libs/http')
 const { runJob } = require('../libs/photoshopV2')
 
 // v1 manifest layer.type values (what we already have on hand) -> v2's
@@ -32,12 +32,12 @@ function validate ({ presignedUrl, outputPutUrl, edits }) {
 // just the changed layer ids against the last saved output) if re-running the
 // full edit set against the original template stops being fast/accurate enough.
 //
-// Uses the Photoshop v2 API (not v1, like psd-manifest) specifically because
-// v1's Layer edit schema has no rotation field at all (verified against the
-// SDK's own type defs) — v2's Transform has a proper `angle`. v2 needs its own
-// Firefly Services entitlement on the OAuth S2S credential (see
-// actions/libs/photoshopV2.js) — this is unverified against a live v2 call as
-// of writing; watch the logs on first save after this change.
+// Uses the Photoshop v2 API specifically because v1's Layer edit schema has no
+// rotation field at all (verified against the SDK's own type defs) — v2's
+// Transform has a proper `angle`. v2 lives under a Firefly Services
+// entitlement on the OAuth S2S credential (see actions/libs/photoshopV2.js) —
+// confirmed working against live traffic (psd-manifest also moved to v2 once
+// v1 was retired for this account entirely).
 async function main (params) {
   const logger = Core.Logger('psd-composite', { level: params.LOG_LEVEL || 'info' })
   const { presignedUrl, outputPutUrl, outputPngPutUrl, edits } = params
@@ -49,33 +49,47 @@ async function main (params) {
     const result = await runJob('/v2/create-composite', {
       image: { source: { url: presignedUrl } },
       edits: {
-        layers: edits.map(({ name, type, bounds, visible }) => ({
-          // Targeting by name, not id — these ids came from a v1 manifest read
-          // (psd-manifest), and v1/v2 are different pipelines; a v1 id may not
-          // resolve to any layer in v2's own view of the document, in which
-          // case the edit is just silently skipped (no error, no effect).
-          name,
-          type: V2_LAYER_TYPE[type] || 'layer',
-          operation: { type: 'edit' },
-          isVisible: visible,
-          // transformMode 'custom' is required for an explicit transform block
-          // to take effect at all — otherwise it's rejected outright.
-          transformMode: 'custom',
-          // ponytail: tried adding an explicit `anchor` field to pin rotation to
-          // each layer's center (matching LayerCanvas's CSS-default center pivot)
-          // — the API 400s on it ("invalid fields: anchor"), so this endpoint
-          // doesn't support that field at all (at least not at this level).
-          // Reverted to offset = top-left, no anchor, which is what actually
-          // works; the rotation-alignment drift the user saw is unresolved —
-          // revisit once there's evidence of what pivot point the API itself
-          // uses by default (e.g. a real create-composite response/rendition
-          // to compare against, rather than another blind schema guess).
-          transform: {
-            offset: { horizontal: bounds.left, vertical: bounds.top },
-            dimension: { width: bounds.width, height: bounds.height },
-            angle: bounds.rotate || 0
+        layers: edits.map(({ name, type, bounds, visible }) => {
+          const v2Type = V2_LAYER_TYPE[type] || 'layer'
+          const layer = {
+            // Targeting by name, not id — these ids came from a v1 manifest read
+            // (psd-manifest), and v1/v2 are different pipelines; a v1 id may not
+            // resolve to any layer in v2's own view of the document, in which
+            // case the edit is just silently skipped (no error, no effect).
+            name,
+            type: v2Type,
+            operation: { type: 'edit' },
+            isVisible: visible
           }
-        }))
+
+          // Background layers are position/transparency-locked in Photoshop
+          // itself (can't be moved, resized, or rotated) — v2 422s the *entire*
+          // request outright if a transform is attached to one ("transform is
+          // not applicable for background_layer"), same reasoning as excluding
+          // group_layer transforms above. Visibility can still be toggled;
+          // position/size/rotation just never applies to this one layer type.
+          if (v2Type !== 'background_layer') {
+            // transformMode 'custom' is required for an explicit transform block
+            // to take effect at all — otherwise it's rejected outright.
+            layer.transformMode = 'custom'
+            // ponytail: tried adding an explicit `anchor` field to pin rotation to
+            // each layer's center (matching LayerCanvas's CSS-default center pivot)
+            // — the API 400s on it ("invalid fields: anchor"), so this endpoint
+            // doesn't support that field at all (at least not at this level).
+            // Reverted to offset = top-left, no anchor, which is what actually
+            // works; the rotation-alignment drift the user saw is unresolved —
+            // revisit once there's evidence of what pivot point the API itself
+            // uses by default (e.g. a real create-composite response/rendition
+            // to compare against, rather than another blind schema guess).
+            layer.transform = {
+              offset: { horizontal: bounds.left, vertical: bounds.top },
+              dimension: { width: bounds.width, height: bounds.height },
+              angle: bounds.rotate || 0
+            }
+          }
+
+          return layer
+        })
       },
       // outputPngPutUrl is optional — when given, the same job also renders a
       // flattened PNG of the composite alongside the PSD, in one call instead
@@ -101,4 +115,4 @@ async function main (params) {
   }
 }
 
-exports.main = main
+exports.main = withCors(main)

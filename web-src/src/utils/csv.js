@@ -86,6 +86,10 @@ export function parseCsvRows (text) {
 // "Image | Sku" (not two separate "Image" and "SKU" columns).
 const UC4_SKU_ALIASES = ['image|sku', 'sku', 'skus', "sku's", 'sku id', 'sku ids']
 const UC4_NAME_ALIASES = ['name', 'offer name', 'offer', 'title']
+// The Workflow Builder graph's 5th input (image size, comma-separated) reads
+// straight from a column literally named "Size" — required the same way the
+// SKU column is, since the graph node it feeds needs a value every row.
+const UC4_SIZE_ALIASES = ['size']
 
 function findUc4ColumnIndex (headers, aliases) {
   return headers.findIndex(h => aliases.includes(normalizeHeader(h)))
@@ -94,19 +98,23 @@ function findUc4ColumnIndex (headers, aliases) {
 export function parseUc4Csv (text) {
   const lines = text.split(/\r\n|\r|\n/).filter(line => line.trim().length > 0)
   if (lines.length === 0) {
-    return { headers: [], rows: [], recordCount: 0, skuIndex: -1, nameIndex: -1, missingColumns: ['Image | Sku'] }
+    return { headers: [], rows: [], recordCount: 0, skuIndex: -1, nameIndex: -1, sizeIndex: -1, missingColumns: ['Image | Sku', 'Size'] }
   }
 
   const headers = splitCsvLine(lines[0])
   const skuIndex = findUc4ColumnIndex(headers, UC4_SKU_ALIASES)
   const nameIndex = findUc4ColumnIndex(headers, UC4_NAME_ALIASES)
-  const missingColumns = skuIndex === -1 ? ['Image | Sku'] : []
+  const sizeIndex = findUc4ColumnIndex(headers, UC4_SIZE_ALIASES)
+  const missingColumns = [
+    ...(skuIndex === -1 ? ['Image | Sku'] : []),
+    ...(sizeIndex === -1 ? ['Size'] : [])
+  ]
 
   // Drops rows that are all-empty-cells — CSV exports (confirmed in a real
   // sample) sometimes leave a trailing line of bare commas, which the line
   // filter above lets through since it's non-empty text, just all commas.
   const rows = lines.slice(1).map(splitCsvLine).filter(cells => cells.some(c => c !== ''))
-  return { headers, rows, recordCount: rows.length, skuIndex, nameIndex, missingColumns }
+  return { headers, rows, recordCount: rows.length, skuIndex, nameIndex, sizeIndex, missingColumns }
 }
 
 // Returns every data row (CsvUpload paginates client-side rather than this

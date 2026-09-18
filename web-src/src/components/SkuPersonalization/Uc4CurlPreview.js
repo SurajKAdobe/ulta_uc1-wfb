@@ -25,7 +25,7 @@ function buildCurl ({ url, body }) {
 
 // A dialog (not UC1 CurlPreview's inline expand) — keeps the narrow sidebar
 // from having to make room for a big JSON blob inline.
-export default function Uc4CurlPreview ({ isReady, rows, skuColumnIndex, backgroundImagePresignedUrl, templatePsdPresignedUrl, colorHex }) {
+export default function Uc4CurlPreview ({ isReady, rows, skuColumnIndex, sizeColumnIndex, backgroundImagePresignedUrl, templatePsdPresignedUrl, colorHex }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [curl, setCurl] = useState(null)
@@ -35,7 +35,7 @@ export default function Uc4CurlPreview ({ isReady, rows, skuColumnIndex, backgro
     setLoading(true)
     setError(null)
     try {
-      const result = await previewUc4Workflow({ rows, skuColumnIndex, backgroundImagePresignedUrl, templatePsdPresignedUrl, colorHex })
+      const result = await previewUc4Workflow({ rows, skuColumnIndex, sizeColumnIndex, backgroundImagePresignedUrl, templatePsdPresignedUrl, colorHex })
       setCurl(buildCurl(result))
     } catch (e) {
       setError(e.message)

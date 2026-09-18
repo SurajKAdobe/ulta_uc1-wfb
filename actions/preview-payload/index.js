@@ -1,4 +1,4 @@
-const { ok, badRequest } = require('../libs/http')
+const { ok, badRequest, withCors } = require('../libs/http')
 const { buildWorkflowInputs } = require('../libs/workflowPayload')
 
 function validate ({ rows, templatePresignedUrl, additionalTemplatePresignedUrls }) {
@@ -39,4 +39,4 @@ async function main (params) {
   })
 }
 
-exports.main = main
+exports.main = withCors(main)

@@ -12,7 +12,7 @@ import PsdList from './PsdList'
 import Uc4Workflow from './Uc4Workflow'
 import LayerCanvas from './LayerCanvas'
 import LayerList from './LayerList'
-import { getPsdManifest, saveComposite } from '../../services/psdService'
+import { getPsdManifest, saveComposite, harmonizeComposite } from '../../services/psdService'
 import { exportPsdToCanvas, syncPsdFromCanvas, exportableLayers } from '../../services/figmaCanvasService'
 import { createHistory, historyState, pushHistory, undoHistory, redoHistory, canUndoHistory, canRedoHistory } from '../../utils/layerHistory'
 
@@ -101,7 +101,10 @@ export default function SkuPersonalization () {
       saveError: null,
       downloadUrl: null,
       downloadPngUrl: null,
-      downloaded: false
+      downloaded: false,
+      harmonizing: false,
+      harmonizeError: null,
+      harmonizedUrl: null
     }
   }
 
@@ -136,18 +139,18 @@ export default function SkuPersonalization () {
     const doc = documents.find((d) => d.id === docId)
     if (!doc) return
     const next = historyState(doc.history).map((l) => (l.id === layerId ? { ...l, bounds } : l))
-    updateDoc(docId, (d) => ({ history: pushHistory(d.history, next), downloadUrl: null, downloadPngUrl: null, downloaded: false }))
+    updateDoc(docId, (d) => ({ history: pushHistory(d.history, next), downloadUrl: null, downloadPngUrl: null, downloaded: false, harmonizedUrl: null, harmonizeError: null }))
   }
 
   function handleToggleVisible (docId, layerId) {
     const doc = documents.find((d) => d.id === docId)
     if (!doc) return
     const next = historyState(doc.history).map((l) => (l.id === layerId ? { ...l, visible: l.visible === false } : l))
-    updateDoc(docId, (d) => ({ history: pushHistory(d.history, next), downloadUrl: null, downloadPngUrl: null, downloaded: false }))
+    updateDoc(docId, (d) => ({ history: pushHistory(d.history, next), downloadUrl: null, downloadPngUrl: null, downloaded: false, harmonizedUrl: null, harmonizeError: null }))
   }
 
   function handleReorderLayers (docId, nextLayers) {
-    updateDoc(docId, (d) => ({ history: pushHistory(d.history, nextLayers), downloadUrl: null, downloadPngUrl: null, downloaded: false }))
+    updateDoc(docId, (d) => ({ history: pushHistory(d.history, nextLayers), downloadUrl: null, downloadPngUrl: null, downloaded: false, harmonizedUrl: null, harmonizeError: null }))
   }
 
   // Shared by the zoom in/out buttons and Ctrl+scroll (LayerCanvas's onZoomChange)
@@ -157,11 +160,11 @@ export default function SkuPersonalization () {
   }
 
   function handleUndo () {
-    if (activeDoc) updateDoc(activeDoc.id, (d) => ({ history: undoHistory(d.history), downloadUrl: null, downloadPngUrl: null, downloaded: false }))
+    if (activeDoc) updateDoc(activeDoc.id, (d) => ({ history: undoHistory(d.history), downloadUrl: null, downloadPngUrl: null, downloaded: false, harmonizedUrl: null, harmonizeError: null }))
   }
 
   function handleRedo () {
-    if (activeDoc) updateDoc(activeDoc.id, (d) => ({ history: redoHistory(d.history), downloadUrl: null, downloadPngUrl: null, downloaded: false }))
+    if (activeDoc) updateDoc(activeDoc.id, (d) => ({ history: redoHistory(d.history), downloadUrl: null, downloadPngUrl: null, downloaded: false, harmonizedUrl: null, harmonizeError: null }))
   }
 
   // `type` (the manifest's layer type — smartObject, fillLayer, etc.) is needed
@@ -199,7 +202,7 @@ export default function SkuPersonalization () {
     updateDoc(id, { saving: true, saveError: null })
     try {
       const { presignedUrl, pngPresignedUrl } = await saveComposite(sourceFor(doc), edits)
-      updateDoc(id, { downloadUrl: presignedUrl, downloadPngUrl: pngPresignedUrl, downloaded: false, saving: false })
+      updateDoc(id, { downloadUrl: presignedUrl, downloadPngUrl: pngPresignedUrl, downloaded: false, saving: false, harmonizedUrl: null, harmonizeError: null })
     } catch (e) {
       updateDoc(id, { saveError: e.message, saving: false })
     }
@@ -208,6 +211,28 @@ export default function SkuPersonalization () {
   function handleSave () {
     if (!activeDoc) return
     saveEdits(activeDoc, buildEdits(historyState(activeDoc.history)))
+  }
+
+  // Any already-harmonized output was rendered off the *previous* composite —
+  // clearing it here is what actually surfaces "try again" after further
+  // edits: otherwise the old preview/download just sits there looking current.
+  // Only enabled once a composite's been saved (needs its flattened PNG, not
+  // the original per-layer source PSD — see harmonizeComposite in
+  // services/psdService.js). The foreground mask the generative API needs is
+  // derived server-side from these same layer edits/document size, not built
+  // here (see psd-harmonize/index.js).
+  async function handleHarmonize () {
+    if (!activeDoc?.downloadPngUrl) return
+    const id = activeDoc.id
+    updateDoc(id, { harmonizing: true, harmonizeError: null })
+    try {
+      const edits = buildEdits(historyState(activeDoc.history))
+      const documentSize = { width: activeDoc.psdDocument?.width, height: activeDoc.psdDocument?.height }
+      const { harmonizedUrl } = await harmonizeComposite(activeDoc.downloadPngUrl, edits, documentSize)
+      updateDoc(id, { harmonizedUrl, harmonizing: false })
+    } catch (e) {
+      updateDoc(id, { harmonizeError: e.message, harmonizing: false })
+    }
   }
 
   // Figma-only: turns this doc's layers into real Figma nodes (see
@@ -246,7 +271,7 @@ export default function SkuPersonalization () {
   }
 
   function handleDownload (which) {
-    const url = which === 'png' ? activeDoc?.downloadPngUrl : activeDoc?.downloadUrl
+    const url = which === 'png' ? activeDoc?.downloadPngUrl : (which === 'jpeg' ? activeDoc?.harmonizedUrl : activeDoc?.downloadUrl)
     if (!url) return
     window.open(url, '_blank', 'noopener')
     updateDoc(activeDoc.id, { downloaded: true })
@@ -357,6 +382,20 @@ export default function SkuPersonalization () {
                     <Text UNSAFE_style={{ fontSize: 12 }}>Re-export</Text>
                   </ActionButton>
                 )}
+                {/* Generative harmonization (Firefly Services /v2/harmonize-image)
+                    against the saved composite's flattened PNG — only makes
+                    sense once a composite exists. */}
+                <Button
+                  variant="secondary"
+                  UNSAFE_className={activeDoc.harmonizing ? 'ulta-executing' : ''}
+                  isDisabled={!activeDoc.downloadPngUrl || activeDoc.saving || activeDoc.exporting || activeDoc.harmonizing}
+                  onPress={handleHarmonize}
+                >
+                  <Flex gap="size-100" alignItems="center">
+                    {activeDoc.harmonizing && <span className="ulta-spinner" aria-hidden="true" />}
+                    <Text>{activeDoc.harmonizing ? 'Harmonizing...' : 'Harmonize'}</Text>
+                  </Flex>
+                </Button>
                 <DialogTrigger type="modal">
                   <ActionButton isQuiet isDisabled={!activeDoc.downloadPngUrl} aria-label="Preview PNG">
                     <Visibility size="S" />
@@ -379,6 +418,30 @@ export default function SkuPersonalization () {
                   )}
                 </DialogTrigger>
 
+                {activeDoc.harmonizedUrl && (
+                  <DialogTrigger type="modal">
+                    <ActionButton isQuiet aria-label="Preview harmonized image">
+                      <Text UNSAFE_style={{ fontSize: 12 }}>Preview harmonized</Text>
+                    </ActionButton>
+                    {(close) => (
+                      <Dialog size="L">
+                        <Content>
+                          <ActionButton isQuiet onPress={close} aria-label="Close" UNSAFE_style={{ position: 'absolute', top: 8, right: 8, zIndex: 1 }}>
+                            <CloseIcon size="S" />
+                          </ActionButton>
+                          <Flex alignItems="center" justifyContent="center" UNSAFE_style={{ minHeight: 320 }}>
+                            <img src={activeDoc.harmonizedUrl} alt="Harmonized composite preview" className="ulta-lightbox-image" style={{ maxHeight: '70vh' }} />
+                          </Flex>
+                        </Content>
+                        <Divider />
+                        <ButtonGroup>
+                          <Button variant="secondary" onPress={close}>Close</Button>
+                        </ButtonGroup>
+                      </Dialog>
+                    )}
+                  </DialogTrigger>
+                )}
+
                 <MenuTrigger>
                   <Button variant="secondary" isDisabled={!activeDoc.downloadUrl}>
                     <Flex gap="size-100" alignItems="center">
@@ -386,9 +449,13 @@ export default function SkuPersonalization () {
                       <ChevronDown size="XS" />
                     </Flex>
                   </Button>
-                  <Menu onAction={(key) => handleDownload(key)} disabledKeys={activeDoc.downloadPngUrl ? [] : ['png']}>
+                  <Menu
+                    onAction={(key) => handleDownload(key)}
+                    disabledKeys={[...(activeDoc.downloadPngUrl ? [] : ['png']), ...(activeDoc.harmonizedUrl ? [] : ['jpeg'])]}
+                  >
                     <Item key="psd">Download PSD</Item>
                     <Item key="png">Download PNG</Item>
+                    <Item key="jpeg">Download Harmonized JPEG</Item>
                   </Menu>
                 </MenuTrigger>
               </Flex>
@@ -397,6 +464,7 @@ export default function SkuPersonalization () {
 
           {activeDoc?.saveError && <Text UNSAFE_style={{ color: 'var(--spectrum-global-color-red-600)', fontSize: 12 }}>{activeDoc.saveError}</Text>}
           {activeDoc?.exportError && <Text UNSAFE_style={{ color: 'var(--spectrum-global-color-red-600)', fontSize: 12 }}>{activeDoc.exportError}</Text>}
+          {activeDoc?.harmonizeError && <Text UNSAFE_style={{ color: 'var(--spectrum-global-color-red-600)', fontSize: 12 }}>{activeDoc.harmonizeError}</Text>}
 
           <Flex direction="row" gap="size-200" flex={1} minHeight={0}>
             {(hasDocument || activeDoc?.manifestLoading) && (

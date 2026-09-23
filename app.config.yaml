@@ -194,6 +194,35 @@ application:
               require-adobe-auth: false
               final: true
 
+          # Harmonize — Firefly Services /v2/harmonize-image (generative AI
+          # blend, not the old /v2/edit tone nudges) — a distinct credential
+          # from the rest of the Photoshop v2 actions, scoped separately in
+          # the Developer Console (see actions/psd-harmonize/index.js).
+          psd-harmonize:
+            function: actions/psd-harmonize/index.js
+            web: 'yes'
+            runtime: nodejs:20
+            limits:
+              timeout: 280000
+            inputs:
+              LOG_LEVEL: $LOG_LEVEL
+              HARMONIZE_IMS_CLIENT_ID: $HARMONIZE_IMS_CLIENT_ID
+              HARMONIZE_IMS_CLIENT_SECRET: $HARMONIZE_IMS_CLIENT_SECRET
+              HARMONIZE_IMS_SCOPES: $HARMONIZE_IMS_SCOPES
+              # The Harmonize API rejects presigned URLs from this project's own
+              # Adobe I/O Files storage ("Domain not allowed") — image/mask/output
+              # are re-hosted on S3 via the presign-proxy for this call only
+              # (actions/libs/s3.js), same proxy contract this project used
+              # before switching to Adobe I/O Files for everything else.
+              S3_PRESIGN_URL: $S3_PRESIGN_URL
+              S3_ACCESS_KEY: $S3_ACCESS_KEY
+              S3_SECRET_KEY: $S3_SECRET_KEY
+              S3_BUCKET: $S3_BUCKET
+              S3_REGION: $S3_REGION
+            annotations:
+              require-adobe-auth: false
+              final: true
+
           # UC4 batch workflow — CSV in, Workflow Builder run, output PSDs feed
           # into the SKU Personalization editor above. Graph still in progress;
           # UC4_WORKFLOW_ID/UC4_WORKFLOW_INPUT_NODE_IDS are placeholders until

@@ -36,27 +36,20 @@ export async function saveComposite (source, edits) {
   return { presignedUrl: psdSlot.getUrl, key: psdSlot.key, pngPresignedUrl: pngSlot.getUrl }
 }
 
-// Runs the saved composite's flattened PNG through Photoshop's generative
-// /v2/harmonize-image (see psd-harmonize/index.js) to blend the pasted-
-// together layers into one cohesive-looking image. Only makes sense once a
-// composite exists — needs `compositePngUrl` from a prior saveComposite call,
-// not the original per-layer source PSD. `edits` (same shape saveComposite
-// takes) and `documentSize` ({ width, height }) are what the action uses to
-// derive the required foreground mask itself — no separate mask upload here.
-// The action re-hosts everything on S3 itself (the Harmonize API rejects our
-// own Adobe I/O Files domain) and hands back the final `harmonizedUrl`
-// directly — no presign-upload round trip needed from here.
-export async function harmonizeComposite (compositePngUrl, edits, documentSize) {
+// Runs the saved composite PSD and flattened PNG through the harmonization
+// Workflow Builder graph (see psd-harmonize/index.js).
+export async function harmonizeComposite (compositePngUrl, compositePsdUrl) {
   const response = await callAction('psd-harmonize', {
     presignedUrl: compositePngUrl,
-    edits,
-    documentWidth: documentSize?.width,
-    documentHeight: documentSize?.height
+    psdPresignedUrl: compositePsdUrl
   })
 
   if (!response?.ok || !response?.harmonizedUrl) {
     throw new Error(response?.error?.message || 'Failed to harmonize composite')
   }
 
-  return { harmonizedUrl: response.harmonizedUrl }
+  return {
+    harmonizedUrl: response.harmonizedUrl,
+    harmonizedPsdUrl: response.harmonizedPsdUrl || null
+  }
 }

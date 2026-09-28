@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { View, Flex, Text } from '@adobe/react-spectrum'
-import Checkmark from '@spectrum-icons/workflow/Checkmark'
 import Close from '@spectrum-icons/workflow/Close'
 import { getUc4RowProgress } from '../../services/uc4WorkflowService'
+import { getBatchSummary } from '../../services/workflowService'
 
 // ponytail: the real Workflow Builder graph has many more nodes than this (see
 // execute-uc4-workflow/index.js) and their per-execution statuses ARE present
@@ -21,10 +21,10 @@ const STEPS = [
 ]
 
 function StepIcon ({ state }) {
-  if (state === 'done') return <Checkmark size="XS" UNSAFE_style={{ color: '#fff' }} />
   if (state === 'error') return <Close size="XS" UNSAFE_style={{ color: '#fff' }} />
   if (state === 'active') return <span className="ulta-spinner" aria-hidden="true" />
-  return null
+  if (state === 'done') return <span className="ulta-stepper-complete-dot" aria-hidden="true" />
+  return <span className="ulta-stepper-pending-dot" aria-hidden="true" />
 }
 
 // One second resolution is plenty for a batch that takes seconds-to-minutes —
@@ -33,7 +33,7 @@ function formatSeconds (ms) {
   return `${Math.max(0, Math.round(ms / 1000))}s`
 }
 
-export default function Uc4WorkflowStepper ({ batchId, status, running, failed, errorMessage, timestamps, totalRows }) {
+export default function Uc4WorkflowStepper ({ status, running, failed, errorMessage, timestamps, totalRows }) {
   const { start, submitDone, processDone } = timestamps || {}
 
   // Ticks once a second only while something is still timing (running) — no
@@ -54,13 +54,13 @@ export default function Uc4WorkflowStepper ({ batchId, status, running, failed, 
   const completed = rowProgress.done
   const failedCount = rowProgress.failed
 
-  // Step state machine, driven entirely by real signals (batchId presence,
+  // Step state machine, driven entirely by real signals (status presence,
   // whether we're still polling, whether a terminal failure was reported) —
   // no fabricated delays.
   let states
   if (failed) {
     states = { submit: 'done', process: 'error', done: 'pending' }
-  } else if (!running && !batchId) {
+  } else if (!running && !status) {
     states = { submit: 'pending', process: 'pending', done: 'pending' }
   } else if (running && !status) {
     states = { submit: 'active', process: 'pending', done: 'pending' }
@@ -71,15 +71,39 @@ export default function Uc4WorkflowStepper ({ batchId, status, running, failed, 
   }
 
   const processProgress = total ? Math.round(((completed + failedCount) / total) * 100) : null
+  const statusProgress = getBatchSummary(status).progress
+  const reportedProgress = statusProgress != null ? statusProgress : processProgress
+  const hasReportedProgress = reportedProgress != null && reportedProgress > 0
+  const visibleProgress = hasReportedProgress ? Math.min(100, reportedProgress) : (running ? 8 : 0)
+  const elapsedSeconds = start ? formatSeconds((timestamps.processDone || now) - start) : '0s'
 
   return (
-    <View borderWidth="thin" borderColor="gray-300" borderRadius="medium" padding="size-250" UNSAFE_className="ulta-fade-in">
-      <Text UNSAFE_style={{ fontWeight: 600, fontSize: 13, display: 'block', marginBottom: 4 }}>Running UC4 batch</Text>
-      {batchId && (
-        <Text UNSAFE_style={{ fontSize: 10, color: 'var(--spectrum-global-color-gray-600)', display: 'block', marginBottom: 12, wordBreak: 'break-all' }}>
-          {batchId}
-        </Text>
-      )}
+    <View borderWidth="thin" borderColor="gray-300" borderRadius="medium" padding="size-250" UNSAFE_className="ulta-fade-in ulta-stepper-card">
+      <Flex justifyContent="space-between" alignItems="start" gap="size-100" UNSAFE_className="ulta-stepper-heading">
+        <View>
+          <Text UNSAFE_className="ulta-stepper-kicker">WORKFLOW IN PROGRESS</Text>
+          <Text
+            UNSAFE_className="ulta-stepper-title"
+            UNSAFE_style={{
+              fontFamily: '"adobe-garamond-pro", "Adobe Garamond Pro", Georgia, serif',
+              fontSize: 30,
+              fontWeight: 500,
+              lineHeight: 1
+            }}
+          >
+            Running UC4 batch
+          </Text>
+          <Text UNSAFE_className="ulta-stepper-subtitle">Preparing your assets for personalization.</Text>
+        </View>
+        <span className="ulta-stepper-time">{elapsedSeconds}</span>
+      </Flex>
+      <Flex alignItems="center" gap="size-100" UNSAFE_className="ulta-stepper-progress-summary">
+        <div className="ulta-progress-track ulta-stepper-progress-track">
+          <div className="ulta-progress-fill" data-active={running ? 'true' : 'false'} style={{ width: `${visibleProgress}%` }} />
+          {running && !hasReportedProgress && <div className="ulta-progress-indeterminate" style={{ height: '100%' }} />}
+        </div>
+        <Text UNSAFE_className="ulta-stepper-percent">{hasReportedProgress ? `${visibleProgress}%` : (running ? 'Starting' : '0%')}</Text>
+      </Flex>
 
       <Flex direction="column">
         {STEPS.map((step, i) => {
@@ -106,13 +130,6 @@ export default function Uc4WorkflowStepper ({ batchId, status, running, failed, 
                     ? `${completed + failedCount} of ${total} rows done${failedCount ? ` (${failedCount} failed)` : ''}`
                     : step.detail}
                 </Text>
-                {step.key === 'process' && state === 'active' && (
-                  <div className="ulta-progress-track" style={{ marginTop: 6, width: 160 }}>
-                    {processProgress != null
-                      ? <div className="ulta-progress-fill" style={{ width: `${processProgress}%` }} />
-                      : <div className="ulta-progress-indeterminate" style={{ height: '100%' }} />}
-                  </div>
-                )}
               </View>
             </Flex>
           )

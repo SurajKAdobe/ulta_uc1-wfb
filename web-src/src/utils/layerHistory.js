@@ -7,7 +7,7 @@ export function createHistory (initial) {
 }
 
 export function historyState (history) {
-  return history.entries[history.index]
+  return history?.entries?.[history.index] ?? []
 }
 
 export function pushHistory (history, next) {
@@ -23,9 +23,9 @@ export function redoHistory (history) {
 }
 
 export function canUndoHistory (history) {
-  return history.index > 0
+  return !!history && history.index > 0
 }
 
 export function canRedoHistory (history) {
-  return history.index < history.entries.length - 1
+  return !!history && history.index < history.entries.length - 1
 }

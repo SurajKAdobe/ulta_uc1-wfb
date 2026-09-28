@@ -61,7 +61,7 @@ export default function Uc2bPsdUpload ({ value, isUploading, error, disabled, on
         <View borderWidth="thin" borderColor="gray-300" borderRadius="medium" padding="size-100" UNSAFE_className="ulta-fade-in">
           <Flex alignItems="center" gap="size-100">
             <Text UNSAFE_style={{ fontWeight: 600, fontSize: 13, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              ✓ {value.fileName}
+              {value.fileName}
             </Text>
             <ActionButton isQuiet onPress={onRemove} aria-label="Remove template PSD" UNSAFE_style={{ minWidth: 0, width: 22, height: 22, flexShrink: 0 }}>
               <Close size="XS" />

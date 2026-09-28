@@ -90,9 +90,11 @@ export default function App() {
           colorScheme={colorScheme}
           onToggleColorScheme={toggleColorScheme}
         />
-        {activeTab === TABS.COMPILATION && <SkuCompilation />}
-        {activeTab === TABS.PERSONALIZATION && <SkuPersonalization />}
-        {activeTab === TABS.BANNER && <BannerGeneration />}
+        <div className="ulta-app-stage" data-active-tab={activeTab}>
+          {activeTab === TABS.COMPILATION && <SkuCompilation />}
+          {activeTab === TABS.PERSONALIZATION && <SkuPersonalization />}
+          {activeTab === TABS.BANNER && <BannerGeneration />}
+        </div>
       </div>
     </Provider>
   );

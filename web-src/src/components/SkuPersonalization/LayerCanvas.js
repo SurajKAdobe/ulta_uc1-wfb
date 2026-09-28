@@ -242,6 +242,7 @@ export default function LayerCanvas ({ psdDocument, layers, selectedId, onSelect
   return (
     <div
       ref={canvasRef}
+      className="ulta-real-canvas"
       tabIndex={0}
       onKeyDown={handleKeyDown}
       style={{

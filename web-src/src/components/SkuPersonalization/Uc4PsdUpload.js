@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react'
 import { View, Flex, Text, ActionButton, ProgressCircle } from '@adobe/react-spectrum'
 import Close from '@spectrum-icons/workflow/Close'
+import { PS_ICON_DATA_URI } from '../../assets/psIcon'
 
 // Template PSD drop zone (node 1) — one file, reused for every row in the batch.
 // Structurally identical to Uc4ImageUpload, just validates .psd instead of image/*.
@@ -23,7 +24,7 @@ export default function Uc4PsdUpload ({ value, isUploading, error, disabled, onS
     <View>
       {!value && (
         <div
-          className="ulta-busy"
+          className="ulta-busy ulta-dropzone"
           data-disabled={disabled ? 'true' : 'false'}
           style={{
             border: `1px dashed ${isDragOver ? 'var(--ulta-accent)' : 'var(--spectrum-global-color-gray-300)'}`,
@@ -58,16 +59,21 @@ export default function Uc4PsdUpload ({ value, isUploading, error, disabled, onS
       )}
 
       {value && (
-        <View borderWidth="thin" borderColor="gray-300" borderRadius="medium" padding="size-100" UNSAFE_className="ulta-fade-in">
-          <Flex alignItems="center" gap="size-100">
-            <Text UNSAFE_style={{ fontWeight: 600, fontSize: 13, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              ✓ {value.fileName}
-            </Text>
+        <div className="ulta-fade-in ulta-asset-card ulta-psd-upload-card">
+          <Flex direction="column" alignItems="center" justifyContent="center" gap="size-150" UNSAFE_className="ulta-psd-asset">
+            <div className="ulta-psd-icon-tile">
+              <img src={PS_ICON_DATA_URI} alt="" className="ulta-psd-upload-icon" />
+            </div>
+            <Flex alignItems="center" gap="size-100" UNSAFE_className="ulta-psd-file-row">
+              <Text UNSAFE_className="ulta-psd-file-name" title={value.fileName}>
+                {value.fileName}
+              </Text>
             <ActionButton isQuiet onPress={onRemove} aria-label="Remove template PSD" UNSAFE_style={{ minWidth: 0, width: 22, height: 22, flexShrink: 0 }}>
               <Close size="XS" />
             </ActionButton>
+            </Flex>
           </Flex>
-        </View>
+        </div>
       )}
 
       {error && <Text UNSAFE_style={{ color: 'var(--spectrum-global-color-red-600)', fontSize: 12 }}>{error}</Text>}

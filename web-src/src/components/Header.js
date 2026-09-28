@@ -46,23 +46,23 @@ export default function Header({ activeTab, onTabChange, colorScheme, onToggleCo
       paddingX="size-400"
       paddingY="size-200"
       backgroundColor="gray-50"
-      UNSAFE_style={{ borderBottom: "2px solid var(--ulta-accent)" }}
       UNSAFE_className="ulta-fade-in ulta-header"
     >
-      <Flex direction="row" alignItems="center" justifyContent="space-between" wrap gap="size-150">
-        <Flex direction="row" alignItems="center" gap="size-200" wrap>
-          <img src={ULTA_LOGO_DATA_URI} alt="Ulta Beauty" height={28} />
-          <View
-            UNSAFE_style={{
-              borderLeft: "1px solid var(--spectrum-global-color-gray-300)",
-              height: 24,
-            }}
-          />
+      <Flex direction="row" alignItems="center" justifyContent="space-between" gap="size-150">
+        <Flex direction="row" alignItems="center" gap="size-200">
+          <Flex alignItems="center" gap="size-150" UNSAFE_className="ulta-brand">
+            <img src={ULTA_LOGO_DATA_URI} alt="Ulta Beauty" height={38} />
+            <View UNSAFE_className="ulta-brand-copy">
+              <Text UNSAFE_className="ulta-brand-name">Creative Studio</Text>
+              <Text UNSAFE_className="ulta-brand-subtitle">Retail content operations</Text>
+            </View>
+          </Flex>
           <Tabs
             aria-label="Feature"
             density="compact"
             isQuiet
             selectedKey={activeTab}
+            UNSAFE_className="ulta-nav-tabs"
             onSelectionChange={onTabChange}
           >
             <TabList>
@@ -78,6 +78,7 @@ export default function Header({ activeTab, onTabChange, colorScheme, onToggleCo
           <ActionButton
             isQuiet
             onPress={onToggleColorScheme}
+            UNSAFE_className="ulta-theme-toggle"
             aria-label={colorScheme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
           >
             {colorScheme === "dark" ? <Light size="S" /> : <Moon size="S" />}

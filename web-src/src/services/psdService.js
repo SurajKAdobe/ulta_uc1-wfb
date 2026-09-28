@@ -12,7 +12,10 @@ export async function uploadPsd (file) {
 
 export async function getPsdManifest (presignedUrl) {
   const { document, layers } = await callAction('psd-manifest', { presignedUrl })
-  return { document, layers: flattenLayers(layers) }
+  return {
+    document: document || {},
+    layers: Array.isArray(layers) ? flattenLayers(layers) : []
+  }
 }
 
 // Re-uploads the current layer bounds as a brand new composite PSD (see

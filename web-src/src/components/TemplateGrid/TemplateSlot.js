@@ -51,7 +51,7 @@ export default function TemplateSlot ({ label, value, isUploading, error, disabl
           ? <ProgressCircle aria-label={`Uploading ${label}`} isIndeterminate size="S" />
           : (
             <Text UNSAFE_style={{ fontSize: 11, color: value ? 'var(--ulta-accent)' : 'var(--spectrum-global-color-gray-600)' }}>
-              {value ? `✓ ${value.fileName}` : '+ Upload PSD'}
+              {value ? value.fileName : '+ Upload PSD'}
             </Text>
             )}
         {error && <Text UNSAFE_style={{ fontSize: 10, color: 'var(--spectrum-global-color-red-600)' }}>{error}</Text>}

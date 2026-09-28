@@ -9,7 +9,35 @@ import Close from '@spectrum-icons/workflow/Close'
 // user supplies the image manually instead.
 export default function Uc4ImageUpload ({ value, isUploading, error, disabled, onSelect, onRemove }) {
   const inputRef = useRef(null)
+  const previewRef = useRef(null)
   const [isDragOver, setIsDragOver] = useState(false)
+
+  function handlePreviewPointerMove (event) {
+    if (event.pointerType === 'touch' || !previewRef.current) return
+    const bounds = event.currentTarget.getBoundingClientRect()
+    const x = (event.clientX - bounds.left) / bounds.width
+    const y = (event.clientY - bounds.top) / bounds.height
+    const frame = previewRef.current
+    frame.style.setProperty('--parallax-x', `${((x - 0.5) * 10).toFixed(2)}px`)
+    frame.style.setProperty('--parallax-y', `${((y - 0.5) * 8).toFixed(2)}px`)
+    frame.style.setProperty('--parallax-rotate-x', `${((0.5 - y) * 4).toFixed(2)}deg`)
+    frame.style.setProperty('--parallax-rotate-y', `${((x - 0.5) * 5).toFixed(2)}deg`)
+    frame.style.setProperty('--parallax-glare-x', `${(x * 100).toFixed(1)}%`)
+    frame.style.setProperty('--parallax-glare-y', `${(y * 100).toFixed(1)}%`)
+    frame.dataset.parallaxActive = 'true'
+  }
+
+  function resetPreviewParallax () {
+    if (!previewRef.current) return
+    const frame = previewRef.current
+    frame.dataset.parallaxActive = 'false'
+    frame.style.setProperty('--parallax-x', '0px')
+    frame.style.setProperty('--parallax-y', '0px')
+    frame.style.setProperty('--parallax-rotate-x', '0deg')
+    frame.style.setProperty('--parallax-rotate-y', '0deg')
+    frame.style.setProperty('--parallax-glare-x', '50%')
+    frame.style.setProperty('--parallax-glare-y', '50%')
+  }
 
   function handleFiles (files) {
     if (disabled) return
@@ -26,7 +54,7 @@ export default function Uc4ImageUpload ({ value, isUploading, error, disabled, o
     <View>
       {!value && (
         <div
-          className="ulta-busy"
+          className="ulta-busy ulta-dropzone"
           data-disabled={disabled ? 'true' : 'false'}
           style={{
             border: `1px dashed ${isDragOver ? 'var(--ulta-accent)' : 'var(--spectrum-global-color-gray-300)'}`,
@@ -61,19 +89,28 @@ export default function Uc4ImageUpload ({ value, isUploading, error, disabled, o
       )}
 
       {value && (
-        <View borderWidth="thin" borderColor="gray-300" borderRadius="medium" padding="size-100" UNSAFE_className="ulta-fade-in">
-          <img
-            src={value.previewUrl}
-            alt=""
-            style={{ width: '100%', height: 140, objectFit: 'contain', borderRadius: 4, background: 'var(--spectrum-global-color-gray-100)', display: 'block' }}
-          />
-          <Flex alignItems="center" gap="size-100" marginTop="size-100">
-            <Text UNSAFE_style={{ fontWeight: 600, fontSize: 13, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              ✓ {value.fileName}
-            </Text>
-            <ActionButton isQuiet onPress={onRemove} aria-label="Remove background image" UNSAFE_style={{ minWidth: 0, width: 22, height: 22, flexShrink: 0 }}>
-              <Close size="XS" />
-            </ActionButton>
+        <View borderWidth="thin" borderColor="gray-300" borderRadius="medium" padding="size-100" UNSAFE_className="ulta-fade-in ulta-asset-card ulta-image-upload-card">
+          <div
+            ref={previewRef}
+            className="ulta-background-preview-frame"
+            data-parallax-active="false"
+            onPointerMove={handlePreviewPointerMove}
+            onPointerLeave={resetPreviewParallax}
+            aria-hidden="true"
+          >
+            <img
+              src={value.previewUrl}
+              alt=""
+              className="ulta-background-thumbnail"
+            />
+          </div>
+          <Flex alignItems="center" marginTop="size-100" UNSAFE_className="ulta-image-file-actions">
+            <Flex alignItems="center" gap="size-100" UNSAFE_className="ulta-image-file-row">
+              <Text UNSAFE_className="ulta-image-file-name" title={value.fileName}>{value.fileName}</Text>
+              <ActionButton isQuiet onPress={onRemove} aria-label="Remove background image" UNSAFE_className="ulta-image-remove-button" UNSAFE_style={{ minWidth: 0, width: 22, height: 22, flexShrink: 0 }}>
+                <Close size="XS" />
+              </ActionButton>
+            </Flex>
           </Flex>
         </View>
       )}

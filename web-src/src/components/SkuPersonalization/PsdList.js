@@ -1,9 +1,9 @@
 import React from 'react'
 import { Text, ActionButton } from '@adobe/react-spectrum'
 import Close from '@spectrum-icons/workflow/Close'
-import Checkmark from '@spectrum-icons/workflow/Checkmark'
 import Alert from '@spectrum-icons/workflow/Alert'
 import Download from '@spectrum-icons/workflow/Download'
+import { PS_ICON_DATA_URI } from '../../assets/psIcon'
 
 // One row per open PSD — click to make it the active document (LAYERS panel and
 // PREVIEW canvas below both follow whichever one is active). Each document keeps
@@ -37,11 +37,9 @@ export default function PsdList ({ documents, activeId, onSelect, onRemove }) {
             <Text UNSAFE_style={{ fontSize: 11, color: 'var(--spectrum-global-color-gray-600)', flexShrink: 0, minWidth: 14 }}>
               {index + 1}.
             </Text>
-            {isBusy
-              ? <div className="ulta-skeleton" aria-label="Loading" role="img" style={{ width: 16, height: 16, borderRadius: '50%', flexShrink: 0 }} />
-              : hasError
-                ? <Alert size="S" UNSAFE_style={{ color: 'var(--spectrum-global-color-red-600)' }} />
-                : <Checkmark size="S" UNSAFE_style={{ color: 'var(--spectrum-global-color-green-700)' }} />}
+            {hasError
+              ? <Alert size="S" UNSAFE_style={{ color: 'var(--spectrum-global-color-red-600)' }} />
+              : <img src={PS_ICON_DATA_URI} alt="" className="ulta-psd-list-icon" data-loading={isBusy ? 'true' : 'false'} />}
             <Text
               UNSAFE_style={{
                 flex: 1,

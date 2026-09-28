@@ -31,6 +31,7 @@ export function flattenLayers (layers, out = [], depth = 0) {
     if (bounds) {
       out.push({
         ...layer,
+        name: layer.name || layer.id || 'Unnamed layer',
         bounds,
         // Kept separate from `bounds` (which drag/resize overwrites) — the psd-
         // manifest rendition is a full-canvas image with this layer's pixels

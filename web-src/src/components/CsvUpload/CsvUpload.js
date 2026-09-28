@@ -37,7 +37,7 @@ export default function CsvUpload ({ value, isUploading, error, disabled, onSele
         // onDragLeave out through its DOM prop allowlist, so drag-and-drop never fires
         // on it (same reason pw-scripts' DropZone.tsx avoids Spectrum layout primitives here).
         <div
-          className="ulta-busy"
+          className="ulta-busy ulta-dropzone"
           data-disabled={disabled ? 'true' : 'false'}
           style={{
             border: `1px dashed ${isDragOver ? 'var(--ulta-accent)' : 'var(--spectrum-global-color-gray-300)'}`,
@@ -80,11 +80,11 @@ export default function CsvUpload ({ value, isUploading, error, disabled, onSele
       )}
 
       {value && (
-        <View borderWidth="thin" borderColor="gray-300" borderRadius="medium" padding="size-200" UNSAFE_className="ulta-fade-in">
+        <View borderWidth="thin" borderColor="gray-300" borderRadius="medium" padding="size-200" UNSAFE_className="ulta-fade-in ulta-asset-card ulta-csv-asset-card">
           <Flex direction="row" wrap justifyContent="space-between" alignItems="start" gap="size-100">
             <Flex direction="column">
               <Flex direction="row" alignItems="start" gap="size-100">
-                <Text UNSAFE_style={{ fontWeight: 600 }}>✓ {value.fileName}</Text>
+                <Text UNSAFE_style={{ fontWeight: 600 }}>                {value.fileName}</Text>
                 {value.recordCount != null && (
                   <span className="ulta-pill" style={{ flexShrink: 0, marginTop: 3 }}>{value.recordCount} records</span>
                 )}
@@ -103,7 +103,7 @@ export default function CsvUpload ({ value, isUploading, error, disabled, onSele
                   <Text>Preview</Text>
                 </Button>
               )}
-              <Flex gap="size-100" UNSAFE_className="ulta-busy" data-disabled={disabled ? 'true' : 'false'}>
+              <Flex gap="size-100" UNSAFE_className="ulta-upload-actions" data-disabled={disabled ? 'true' : 'false'}>
                 <Button variant="secondary" isDisabled={disabled} onPress={() => inputRef.current?.click()}>Replace</Button>
                 <Button variant="negative" style="outline" isDisabled={disabled} onPress={onRemove}>Remove</Button>
               </Flex>

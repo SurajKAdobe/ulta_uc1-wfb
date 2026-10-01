@@ -30,11 +30,11 @@ npm run figma:build
 
 The build creates the following files under `figma-plugin/dist/`:
 
-| Artifact | Purpose |
-| --- | --- |
+| Artifact  | Purpose                                                                                              |
+| --------- | ---------------------------------------------------------------------------------------------------- |
 | `code.js` | Figma sandbox controller: window sizing, upload relay, client storage, and native canvas operations. |
-| `ui.html` | Self-contained UI with its JavaScript inlined for Figma. |
-| `ui.js` | Compiled UI bundle used when generating the HTML. |
+| `ui.html` | Self-contained UI with its JavaScript inlined for Figma.                                             |
+| `ui.js`   | Compiled UI bundle used when generating the HTML.                                                    |
 
 In the Figma desktop app:
 
@@ -104,15 +104,15 @@ Opening the generated HTML as a regular file is not a substitute for running the
 
 ## Prerequisites
 
-| Requirement | Notes |
-| --- | --- |
-| Node.js | Use **Node 24.11+** or **Node 22.18+** for the local build toolchain. Babel 8 requires these versions; older Node 20 installations cannot build the current UI dependency set. |
-| npm | Use the committed lockfile with `npm ci`. |
-| Adobe I/O CLI | The `aio` command and App Builder app commands must be available. |
-| Adobe Developer Console workspace | An App Builder/Runtime workspace with Adobe I/O Files access and appropriate Adobe API entitlements. |
-| OAuth Server-to-Server credential | Access to the target Workflow Builder graphs, Photoshop API, and Firefly/custom model as applicable. |
-| Figma desktop app | Needed to import and run the local development plugin. |
-| Templates and sample data | Valid PSD templates and CSVs matching the relevant workflow graph. Default assets are described below. |
+| Requirement                       | Notes                                                                                                                                                                          |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Node.js                           | Use **Node 24.11+** or **Node 22.18+** for the local build toolchain. Babel 8 requires these versions; older Node 20 installations cannot build the current UI dependency set. |
+| npm                               | Use the committed lockfile with `npm ci`.                                                                                                                                      |
+| Adobe I/O CLI                     | The `aio` command and App Builder app commands must be available.                                                                                                              |
+| Adobe Developer Console workspace | An App Builder/Runtime workspace with Adobe I/O Files access and appropriate Adobe API entitlements.                                                                           |
+| OAuth Server-to-Server credential | Access to the target Workflow Builder graphs, Photoshop API, and Firefly/custom model as applicable.                                                                           |
+| Figma desktop app                 | Needed to import and run the local development plugin.                                                                                                                         |
+| Templates and sample data         | Valid PSD templates and CSVs matching the relevant workflow graph. Default assets are described below.                                                                         |
 
 The **local Node version** is distinct from the configured **Runtime action version**, which is `nodejs:20` in [app.config.yaml](app.config.yaml).
 
@@ -153,11 +153,11 @@ npm run dev
 
 This runs `aio app dev` through the repository's retry wrapper. Use the URL printed by the CLI, normally **https://localhost:9080**. Browser views use hash routes:
 
-| Route | View |
-| --- | --- |
-| `/` | UC1 SKU Compilation |
-| `/#/uc4` | UC4 SKU Personalization |
-| `/#/uc2b` | UC2B Banner Generation |
+| Route     | View                    |
+| --------- | ----------------------- |
+| `/`       | UC1 SKU Compilation     |
+| `/#/uc4`  | UC4 SKU Personalization |
+| `/#/uc2b` | UC2B Banner Generation  |
 
 Hash routes allow direct navigation without requiring server-side SPA path rewrites.
 
@@ -268,12 +268,12 @@ Upload a CSV, use the primary PSD template and six additional templates, preview
 
 The required CSV headers are:
 
-| Header | Purpose |
-| --- | --- |
-| `Sku's for Image` | SKU/content prompt input. |
-| `Amplience Image Name` | Output filename input. |
+| Header                  | Purpose                           |
+| ----------------------- | --------------------------------- |
+| `Sku's for Image`       | SKU/content prompt input.         |
+| `Amplience Image Name`  | Output filename input.            |
 | `Firefly \| Background` | Background-color selection input. |
-| `Firefly \| Template` | Template/size selection input. |
+| `Firefly \| Template`   | Template/size selection input.    |
 
 Header matching is trimmed and case-insensitive; whitespace around `|` is normalized. The row parser supports comma-containing quoted fields and escaped double quotes, but splits input by physical lines, so do not put multiline field values in these CSVs. Use values accepted by your Workflow Builder graph; the frontend header checks are not a complete validation of graph-specific values.
 
@@ -283,11 +283,11 @@ UC1's additional template order is significant: the six template URLs are zipped
 
 UC4 takes parsed CSV rows, one PSD template, a generated/uploaded background image, and a fallback hex color (default `#FFFFFF`). Each CSV row produces one workflow input set. The row's SKU list becomes comma-separated Ulta product image URLs of the form `https://media.ultainc.com/i/ulta/<sku>`; the `Size` value is sent as text, as supplied by the CSV. The backend currently sends these URLs as text, not individually rehosted files.
 
-| Column | Requirement |
-| --- | --- |
+| Column         | Requirement                                                                                                         |
+| -------------- | ------------------------------------------------------------------------------------------------------------------- |
 | `Image \| Sku` | Required SKU list. Also accepts `sku`, `skus`, `sku's`, `sku id`, or `sku ids`, with case/whitespace normalization. |
-| `Size` | Required. Values must be accepted by the target graph. |
-| `Name` | Optional output label. Also accepts `offer name`, `offer`, or `title`. |
+| `Size`         | Required. Values must be accepted by the target graph.                                                              |
+| `Name`         | Optional output label. Also accepts `offer name`, `offer`, or `title`.                                              |
 
 For example, a two-SKU CSV cell must be quoted: `"1234567,2345678"`. All-empty rows are dropped. The same line-based CSV limitation described for UC1 applies.
 
@@ -313,37 +313,37 @@ The UI extracts available PSD/PNG outputs for preview/download. `UC2B_OUTPUT_NOD
 
 Use [.env.example](.env.example) as the template and [app.config.yaml](app.config.yaml) as the source of truth for which variables are injected into each action. Keep secrets out of frontend files, plugin manifests, screenshots, and commits.
 
-| Variable(s) | Purpose |
-| --- | --- |
-| `LOG_LEVEL` | Logging level where mapped by the configuration; several actions explicitly use `info`. |
-| `IMS_OAUTH_S2S_CLIENT_ID` | OAuth Server-to-Server client ID; also the Photoshop API key used by the v2 client. |
-| `IMS_OAUTH_S2S_CLIENT_SECRET` | Server-side client secret. |
-| `IMS_OAUTH_S2S_ORG_ID` | Adobe IMS organization for Workflow Builder requests. |
-| `IMS_OAUTH_S2S_SCOPES` | Credential's scopes, as a JSON-array string or comma-separated string accepted by the token helper. Use the scopes and service entitlements for your credential. |
-| `IMS_USER_ID` | Technical account ID matching the bearer token identity, not a human user ID. |
-| `API_KEY` | API key used by Workflow Builder and Firefly. Photoshop v2 uses `IMS_OAUTH_S2S_CLIENT_ID` instead. |
-| `WORKFLOW_ID` | UC1 workflow graph ID. |
-| `WORKFLOW_TEMPLATE_NODE_ID` | UC1 primary-template input node. |
-| `WORKFLOW_ADDITIONAL_TEMPLATE_NODE_IDS` | Six comma-separated UC1 template input node IDs, in UI template order. |
-| `WORKFLOW_SKU_NODE_ID`, `WORKFLOW_FILENAME_NODE_ID`, `WORKFLOW_BACKGROUND_NODE_ID`, `WORKFLOW_TEMPLATE_SIZE_NODE_ID` | UC1 per-row text input nodes. |
-| `UC4_WORKFLOW_ID` | UC4 workflow graph ID. |
-| `UC4_INPUT_IMAGE_NODE_ID` | UC4 PSD template input. |
-| `UC4_INPUT_ROW_IMAGE_NODE_ID` | UC4 background-image input. |
-| `UC4_INPUT_COLOR_NODE_ID`, `UC4_INPUT_SKU_URLS_NODE_ID`, `UC4_INPUT_SIZE_NODE_ID` | UC4 color, product-image-URL list, and size text inputs. |
-| `UC2B_WORKFLOW_ID` | Banner workflow graph ID. |
-| `UC2B_INPUT_CSV_NODE_ID`, `UC2B_INPUT_TEMPLATE_NODE_ID` | Banner CSV-file and PSD-template inputs. |
+| Variable(s)                                                                                                          | Purpose                                                                                                                                                          |
+| -------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `LOG_LEVEL`                                                                                                          | Logging level where mapped by the configuration; several actions explicitly use `info`.                                                                          |
+| `IMS_OAUTH_S2S_CLIENT_ID`                                                                                            | OAuth Server-to-Server client ID; also the Photoshop API key used by the v2 client.                                                                              |
+| `IMS_OAUTH_S2S_CLIENT_SECRET`                                                                                        | Server-side client secret.                                                                                                                                       |
+| `IMS_OAUTH_S2S_ORG_ID`                                                                                               | Adobe IMS organization for Workflow Builder requests.                                                                                                            |
+| `IMS_OAUTH_S2S_SCOPES`                                                                                               | Credential's scopes, as a JSON-array string or comma-separated string accepted by the token helper. Use the scopes and service entitlements for your credential. |
+| `IMS_USER_ID`                                                                                                        | Technical account ID matching the bearer token identity, not a human user ID.                                                                                    |
+| `API_KEY`                                                                                                            | API key used by Workflow Builder and Firefly. Photoshop v2 uses `IMS_OAUTH_S2S_CLIENT_ID` instead.                                                               |
+| `WORKFLOW_ID`                                                                                                        | UC1 workflow graph ID.                                                                                                                                           |
+| `WORKFLOW_TEMPLATE_NODE_ID`                                                                                          | UC1 primary-template input node.                                                                                                                                 |
+| `WORKFLOW_ADDITIONAL_TEMPLATE_NODE_IDS`                                                                              | Six comma-separated UC1 template input node IDs, in UI template order.                                                                                           |
+| `WORKFLOW_SKU_NODE_ID`, `WORKFLOW_FILENAME_NODE_ID`, `WORKFLOW_BACKGROUND_NODE_ID`, `WORKFLOW_TEMPLATE_SIZE_NODE_ID` | UC1 per-row text input nodes.                                                                                                                                    |
+| `UC4_WORKFLOW_ID`                                                                                                    | UC4 workflow graph ID.                                                                                                                                           |
+| `UC4_INPUT_IMAGE_NODE_ID`                                                                                            | UC4 PSD template input.                                                                                                                                          |
+| `UC4_INPUT_ROW_IMAGE_NODE_ID`                                                                                        | UC4 background-image input.                                                                                                                                      |
+| `UC4_INPUT_COLOR_NODE_ID`, `UC4_INPUT_SKU_URLS_NODE_ID`, `UC4_INPUT_SIZE_NODE_ID`                                    | UC4 color, product-image-URL list, and size text inputs.                                                                                                         |
+| `UC2B_WORKFLOW_ID`                                                                                                   | Banner workflow graph ID.                                                                                                                                        |
+| `UC2B_INPUT_CSV_NODE_ID`, `UC2B_INPUT_TEMPLATE_NODE_ID`                                                              | Banner CSV-file and PSD-template inputs.                                                                                                                         |
 
 Storage uses Runtime identity supplied to `@adobe/aio-lib-files`; do not add external AWS credentials just because Workflow Builder payloads use `storageType: 'AWS'`. A valid local/remote App Builder storage context is still required.
 
 ### Frontend and Plugin Configuration
 
-| File | Configuration |
-| --- | --- |
-| [web-src/src/config.json](web-src/src/config.json) | Action-name-to-URL map. The current checkout targets local HTTPS actions; verify every endpoint when switching environments. |
-| [web-src/src/workflowConfig.js](web-src/src/workflowConfig.js) | Display name and UC1/UC4/UC2B output-node IDs. These are structural IDs, not secrets. |
-| [figma-plugin/manifest.json](figma-plugin/manifest.json) | Plugin identity, entry points, editor type, and network permissions. |
-| [figma-plugin/webpack.config.js](figma-plugin/webpack.config.js) | Plugin compilation, CSS injection, inline HTML bundle, and sandbox entry. |
-| [web-src/src/components/Header.js](web-src/src/components/Header.js) | Tabs and whole-plugin zoom defaults. |
+| File                                                                 | Configuration                                                                                                                |
+| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| [web-src/src/config.json](web-src/src/config.json)                   | Action-name-to-URL map. The current checkout targets local HTTPS actions; verify every endpoint when switching environments. |
+| [web-src/src/workflowConfig.js](web-src/src/workflowConfig.js)       | Display name and UC1/UC4/UC2B output-node IDs. These are structural IDs, not secrets.                                        |
+| [figma-plugin/manifest.json](figma-plugin/manifest.json)             | Plugin identity, entry points, editor type, and network permissions.                                                         |
+| [figma-plugin/webpack.config.js](figma-plugin/webpack.config.js)     | Plugin compilation, CSS injection, inline HTML bundle, and sandbox entry.                                                    |
+| [web-src/src/components/Header.js](web-src/src/components/Header.js) | Tabs and whole-plugin zoom defaults.                                                                                         |
 
 When a graph changes, update both its backend input-node configuration and its frontend output-node configuration. The display-only payload/cURL previews do not execute a workflow and do not expose secret authentication headers.
 
@@ -365,16 +365,16 @@ node scripts/seed-default-assets.js "https://<namespace>.adobeioruntime.net/api/
 
 The script reads the following source files:
 
-| Source | Stored key |
-| --- | --- |
-| [psds/bg_change.psd](psds/bg_change.psd) | `defaults/primary-template/bg_change.psd` |
-| [psds/UC1 - Promo Card - 1 SKU.psd](psds/UC1%20-%20Promo%20Card%20-%201%20SKU.psd) | `defaults/additional-templates/tpl-1sku-960x768.psd` |
-| [psds/UC1-Promo-Card-1-SKU-4x_FS_1500x896.psd](psds/UC1-Promo-Card-1-SKU-4x_FS_1500x896.psd) | `defaults/additional-templates/tpl-1sku-1500x896.psd` |
+| Source                                                                                         | Stored key                                             |
+| ---------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| [psds/bg_change.psd](psds/bg_change.psd)                                                       | `defaults/primary-template/bg_change.psd`              |
+| [psds/UC1 - Promo Card - 1 SKU.psd](psds/UC1%20-%20Promo%20Card%20-%201%20SKU.psd)             | `defaults/additional-templates/tpl-1sku-960x768.psd`   |
+| [psds/UC1-Promo-Card-1-SKU-4x_FS_1500x896.psd](psds/UC1-Promo-Card-1-SKU-4x_FS_1500x896.psd)   | `defaults/additional-templates/tpl-1sku-1500x896.psd`  |
 | [psds/UC1-Promo-Card-1-SKU-4x_FS_1500x1500.psd](psds/UC1-Promo-Card-1-SKU-4x_FS_1500x1500.psd) | `defaults/additional-templates/tpl-1sku-1500x1500.psd` |
-| [psds/UC1 - Promo Card - 2 SKU.psd](psds/UC1%20-%20Promo%20Card%20-%202%20SKU.psd) | `defaults/additional-templates/tpl-2sku-960x768.psd` |
-| [psds/UC1-Promo-Card-2-SKU-4x_1500x896.psd](psds/UC1-Promo-Card-2-SKU-4x_1500x896.psd) | `defaults/additional-templates/tpl-2sku-1500x896.psd` |
-| [psds/UC1-Promo-Card-2-SKU-4x_1500x1500.psd](psds/UC1-Promo-Card-2-SKU-4x_1500x1500.psd) | `defaults/additional-templates/tpl-2sku-1500x1500.psd` |
-| [web-src/src/assets/bg.jpg](web-src/src/assets/bg.jpg) | `defaults/uc4-background/bg.jpg` |
+| [psds/UC1 - Promo Card - 2 SKU.psd](psds/UC1%20-%20Promo%20Card%20-%202%20SKU.psd)             | `defaults/additional-templates/tpl-2sku-960x768.psd`   |
+| [psds/UC1-Promo-Card-2-SKU-4x_1500x896.psd](psds/UC1-Promo-Card-2-SKU-4x_1500x896.psd)         | `defaults/additional-templates/tpl-2sku-1500x896.psd`  |
+| [psds/UC1-Promo-Card-2-SKU-4x_1500x1500.psd](psds/UC1-Promo-Card-2-SKU-4x_1500x1500.psd)       | `defaults/additional-templates/tpl-2sku-1500x1500.psd` |
+| [web-src/src/assets/bg.jpg](web-src/src/assets/bg.jpg)                                         | `defaults/uc4-background/bg.jpg`                       |
 
 The action only returns a presigned write URL for a whitelisted key; the script uploads bytes directly to storage, avoiding Runtime web-action payload limits. Re-running replaces the objects at those keys. For localhost only, the script disables Node's TLS certificate verification for its development requests; do not reuse that setting for production.
 
@@ -382,27 +382,27 @@ The action only returns a presigned write URL for a whitelisted key; the script 
 
 All configured actions belong to the `ulta-wfb` Runtime package and are called through the endpoint map. See [app.config.yaml](app.config.yaml) for runtime settings, inputs, timeouts, and deployment includes.
 
-| Action | Responsibility |
-| --- | --- |
-| `presign-upload` | Mint upload/read URLs and an object key for an incoming asset. |
-| `refresh-presign` | Mint a fresh read URL for a stored object key. |
-| `default-additional-templates` | Return fresh URLs for the six seeded UC1 templates. |
-| `seed-default-assets` | Mint write URLs for whitelisted default asset keys. |
-| `execute-workflow` | Submit UC1 row inputs to Workflow Builder. |
-| `preview-payload` | Construct the UC1 request without submitting it. |
-| `execute-uc4-workflow` | Submit UC4 row/template/background/color/size inputs. |
-| `preview-uc4-workflow` | Construct the UC4 request without submitting it. |
-| `execute-uc2b-workflow` | Submit the complete CSV and banner PSD as one input set. |
-| `preview-uc2b-workflow` | Construct the banner request without submitting it. |
-| `check-status` | Retrieve batch status and preview outputs. |
-| `check-executions` | Retrieve execution-level status and detailed failure information. |
-| `list-batches` | Retrieve batch history. |
-| `cancel-batch` | Request cancellation of a batch. |
-| `psd-manifest` | Generate/normalize a Photoshop v2 manifest and layer renditions. |
-| `psd-composite` | Apply supported layer edits and create saved PSD/PNG outputs. |
-| `psd-harmonize` | Execute the bundled Photoshop ATN, then render harmonized PSD/PNG. |
-| `firefly-generate` | Submit an asynchronous custom-model background-generation job. |
-| `firefly-generation-status` | Poll the Firefly job and prepare the generated background for use. |
+| Action                         | Responsibility                                                     |
+| ------------------------------ | ------------------------------------------------------------------ |
+| `presign-upload`               | Mint upload/read URLs and an object key for an incoming asset.     |
+| `refresh-presign`              | Mint a fresh read URL for a stored object key.                     |
+| `default-additional-templates` | Return fresh URLs for the six seeded UC1 templates.                |
+| `seed-default-assets`          | Mint write URLs for whitelisted default asset keys.                |
+| `execute-workflow`             | Submit UC1 row inputs to Workflow Builder.                         |
+| `preview-payload`              | Construct the UC1 request without submitting it.                   |
+| `execute-uc4-workflow`         | Submit UC4 row/template/background/color/size inputs.              |
+| `preview-uc4-workflow`         | Construct the UC4 request without submitting it.                   |
+| `execute-uc2b-workflow`        | Submit the complete CSV and banner PSD as one input set.           |
+| `preview-uc2b-workflow`        | Construct the banner request without submitting it.                |
+| `check-status`                 | Retrieve batch status and preview outputs.                         |
+| `check-executions`             | Retrieve execution-level status and detailed failure information.  |
+| `list-batches`                 | Retrieve batch history.                                            |
+| `cancel-batch`                 | Request cancellation of a batch.                                   |
+| `psd-manifest`                 | Generate/normalize a Photoshop v2 manifest and layer renditions.   |
+| `psd-composite`                | Apply supported layer edits and create saved PSD/PNG outputs.      |
+| `psd-harmonize`                | Execute the bundled Photoshop ATN, then render harmonized PSD/PNG. |
+| `firefly-generate`             | Submit an asynchronous custom-model background-generation job.     |
+| `firefly-generation-status`    | Poll the Firefly job and prepare the generated background for use. |
 
 The `actions/firefly-custom-models/` directory is not registered as a deployed action in the current manifest. Do not assume it provides a model-discovery endpoint.
 
@@ -445,14 +445,14 @@ Edit source files, not generated artifacts. Local `.env`, `.aio`, temporary cred
 
 ### Commands
 
-| Command | Effect |
-| --- | --- |
-| `npm ci` | Install locked dependencies. |
-| `npm run dev` | Clear configured ports and run local App Builder development with conflict retries. |
-| `npm run run` | Run the App Builder remote-Runtime development mode. |
-| `npm run figma:build` | Build the plugin in production mode. |
-| `npm run figma:watch` | Rebuild the plugin on source changes in development mode. |
-| `npm run deploy` | Deploy the App Builder application/actions to the selected workspace. |
+| Command               | Effect                                                                              |
+| --------------------- | ----------------------------------------------------------------------------------- |
+| `npm ci`              | Install locked dependencies.                                                        |
+| `npm run dev`         | Clear configured ports and run local App Builder development with conflict retries. |
+| `npm run run`         | Run the App Builder remote-Runtime development mode.                                |
+| `npm run figma:build` | Build the plugin in production mode.                                                |
+| `npm run figma:watch` | Rebuild the plugin on source changes in development mode.                           |
+| `npm run deploy`      | Deploy the App Builder application/actions to the selected workspace.               |
 
 There is no `npm test` script. Run the current focused Node test files directly:
 
@@ -490,23 +490,23 @@ Deploying App Builder does not publish the plugin to Figma. Workspace changes do
 
 ## Troubleshooting
 
-| Symptom | Check |
-| --- | --- |
-| Figma reports missing UI/controller files | Run `npm run figma:build` and import the source manifest. Verify the generated files exist, then restart the plugin. |
-| Plugin is blank or reports startup failure | Inspect the Figma development console and fatal-error text. Ensure the sandbox starts and responds to storage initialization. Do not test the plugin by opening its HTML without Figma. |
-| Upload fails with CORS from the plugin UI | Keep the sandbox upload-relay path. Also check the manifest's network permissions and whether the action/asset host is reachable. |
-| Local actions are unreachable or HTTPS fails | Start the backend, verify the endpoint map and port, and review the local certificate trust. Building the plugin alone does not start a server. |
-| `EADDRINUSE` during local development | Check ports 9080 and 35729. The dev script clears them and retries; avoid unrelated services on those ports. |
-| Build fails on Node version/engine checks | Use Node 24.11+ or 22.18+ and reinstall from the lockfile. Runtime's Node 20 setting is not the UI build prerequisite. |
-| Default UC1 templates fail to load | Seed the required objects in the same namespace used by the actions. Refreshing a URL cannot create a missing object. |
-| Workflow submission returns 401/403 | Check OAuth scopes, service access, org/client/API-key mapping, and the technical account identity in `IMS_USER_ID`. |
-| Workflow fails or never produces the expected assets | Check input-node IDs, CSV schema/values, template order, output-node IDs, and execution-level errors. A graph edit can invalidate structural IDs. |
-| Firefly generation fails | Check API key/scopes and entitlement to the custom model configured in the backend. Use a nonempty prompt of at most 1,500 characters. |
-| UC4 Run does nothing or remains unavailable | Supply CSV, template PSD, and a generated/uploaded background. The current handler requires all three regardless of the background input's optional label. |
-| Native Figma edits are not in the downloaded PSD | Use **Sync from Canvas & Save** for the connected frame. Only exported layer IDs participate; reconnect/re-export restored documents as needed. |
-| Preview dragging jumps after changing UI zoom | Ensure the running plugin was rebuilt/restarted and is using the current shared scale handling. Figma canvas zoom is a separate setting. |
-| Harmonization fails | Save a composite first, verify the bundled ATN and action name, and check Photoshop v2 entitlement, Files preparation, template compatibility, and timeout logs. |
-| Saved output links stop working | Refresh/reopen through the app where a stored key or batch reference is available. Download important deliverables rather than treating client history as permanent storage. |
-| Banner results include unexpected assets | Configure final `UC2B_OUTPUT_NODE_IDS`; the empty-list fallback currently scans all output nodes. |
+| Symptom                                              | Check                                                                                                                                                                                   |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Figma reports missing UI/controller files            | Run `npm run figma:build` and import the source manifest. Verify the generated files exist, then restart the plugin.                                                                    |
+| Plugin is blank or reports startup failure           | Inspect the Figma development console and fatal-error text. Ensure the sandbox starts and responds to storage initialization. Do not test the plugin by opening its HTML without Figma. |
+| Upload fails with CORS from the plugin UI            | Keep the sandbox upload-relay path. Also check the manifest's network permissions and whether the action/asset host is reachable.                                                       |
+| Local actions are unreachable or HTTPS fails         | Start the backend, verify the endpoint map and port, and review the local certificate trust. Building the plugin alone does not start a server.                                         |
+| `EADDRINUSE` during local development                | Check ports 9080 and 35729. The dev script clears them and retries; avoid unrelated services on those ports.                                                                            |
+| Build fails on Node version/engine checks            | Use Node 24.11+ or 22.18+ and reinstall from the lockfile. Runtime's Node 20 setting is not the UI build prerequisite.                                                                  |
+| Default UC1 templates fail to load                   | Seed the required objects in the same namespace used by the actions. Refreshing a URL cannot create a missing object.                                                                   |
+| Workflow submission returns 401/403                  | Check OAuth scopes, service access, org/client/API-key mapping, and the technical account identity in `IMS_USER_ID`.                                                                    |
+| Workflow fails or never produces the expected assets | Check input-node IDs, CSV schema/values, template order, output-node IDs, and execution-level errors. A graph edit can invalidate structural IDs.                                       |
+| Firefly generation fails                             | Check API key/scopes and entitlement to the custom model configured in the backend. Use a nonempty prompt of at most 1,500 characters.                                                  |
+| UC4 Run does nothing or remains unavailable          | Supply CSV, template PSD, and a generated/uploaded background. The current handler requires all three regardless of the background input's optional label.                              |
+| Native Figma edits are not in the downloaded PSD     | Use **Sync from Canvas & Save** for the connected frame. Only exported layer IDs participate; reconnect/re-export restored documents as needed.                                         |
+| Preview dragging jumps after changing UI zoom        | Ensure the running plugin was rebuilt/restarted and is using the current shared scale handling. Figma canvas zoom is a separate setting.                                                |
+| Harmonization fails                                  | Save a composite first, verify the bundled ATN and action name, and check Photoshop v2 entitlement, Files preparation, template compatibility, and timeout logs.                        |
+| Saved output links stop working                      | Refresh/reopen through the app where a stored key or batch reference is available. Download important deliverables rather than treating client history as permanent storage.            |
+| Banner results include unexpected assets             | Configure final `UC2B_OUTPUT_NODE_IDS`; the empty-list fallback currently scans all output nodes.                                                                                       |
 
 For implementation details, begin with [app.config.yaml](app.config.yaml), the corresponding action under [actions](actions), and the matching frontend service under [web-src/src/services](web-src/src/services). For plugin-specific issues, start with the [sandbox controller](figma-plugin/src/plugin/controller.js) and [Figma bridge](web-src/src/services/figmaBridge.js).

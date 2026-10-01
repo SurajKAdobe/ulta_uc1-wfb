@@ -1,7 +1,7 @@
 :root {
   /* Sampled from web-src/ulta_logo.png */
-  --ulta-accent: #F47C39;
-  --ulta-accent-soft: #FDEEE4;
+  --ulta-accent: #f47c39;
+  --ulta-accent-soft: #fdeee4;
   --ulta-skeleton-highlight: rgba(255, 255, 255, 0.7);
   --ulta-ink: #24201e;
   --ulta-muted: #706a67;
@@ -52,11 +52,14 @@
   --spectrum-global-color-static-blue-600: #ff9b62;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
 }
 
-html, body {
+html,
+body {
   overflow-x: hidden;
 }
 
@@ -67,7 +70,15 @@ body {
   color: var(--ulta-ink);
   /* Adobe Clean is provided by Adobe host shells when available. The
      fallbacks keep local development and standalone deploys deterministic. */
-  font-family: "adobe-clean", "Adobe Clean", "Source Sans Pro", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family:
+    "adobe-clean",
+    "Adobe Clean",
+    "Source Sans Pro",
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -86,7 +97,11 @@ body.ulta-plugin-ui {
   display: flex;
   flex-direction: column;
   background:
-    radial-gradient(circle at 92% 0%, rgba(244, 124, 57, 0.11), transparent 30rem),
+    radial-gradient(
+      circle at 92% 0%,
+      rgba(244, 124, 57, 0.11),
+      transparent 30rem
+    ),
     var(--ulta-canvas);
 }
 
@@ -94,21 +109,31 @@ body.ulta-plugin-ui {
   flex: 0 0 auto;
   padding-top: 14px !important;
   padding-bottom: 14px !important;
-  background: color-mix(in srgb, var(--ulta-surface) 93%, transparent) !important;
+  background: color-mix(
+    in srgb,
+    var(--ulta-surface) 93%,
+    transparent
+  ) !important;
   border-bottom: 1px solid var(--ulta-border);
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
   position: relative;
   z-index: 2;
 }
 
-.ulta-brand { min-width: 236px; }
+.ulta-brand {
+  min-width: 236px;
+}
 .ulta-brand img {
   width: 38px;
   height: 38px;
   object-fit: contain;
   filter: drop-shadow(0 6px 10px rgba(244, 124, 57, 0.2));
 }
-.ulta-brand-copy { display: flex; flex-direction: column; gap: 1px; }
+.ulta-brand-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
 .ulta-brand-name {
   display: block;
   color: var(--ulta-ink);
@@ -122,18 +147,36 @@ body.ulta-plugin-ui {
   font-size: 10px;
   letter-spacing: 0.35px;
 }
-.ulta-nav-tabs { margin-left: 18px; }
+.ulta-nav-tabs {
+  margin-left: 18px;
+}
 .ulta-nav-tabs [role="tab"] {
   color: var(--ulta-muted) !important;
   font-size: 12px !important;
   font-weight: 600 !important;
-  transition: color 180ms ease, transform 180ms ease;
+  transition:
+    color 180ms ease,
+    transform 180ms ease;
 }
-.ulta-nav-tabs [role="tab"]:hover { color: var(--ulta-ink) !important; transform: translateY(-1px); }
-.ulta-nav-tabs [role="tab"][aria-selected="true"] { color: var(--ulta-ink) !important; }
-.ulta-nav-tabs [role="tab"][aria-selected="true"]::after { background: var(--ulta-accent) !important; height: 3px !important; border-radius: 4px; }
-.ulta-nav-tabs [role="tab"][aria-selected="true"] { border-bottom-color: var(--ulta-accent) !important; }
-.ulta-theme-toggle { border: 1px solid var(--ulta-border) !important; border-radius: 10px !important; }
+.ulta-nav-tabs [role="tab"]:hover {
+  color: var(--ulta-ink) !important;
+  transform: translateY(-1px);
+}
+.ulta-nav-tabs [role="tab"][aria-selected="true"] {
+  color: var(--ulta-ink) !important;
+}
+.ulta-nav-tabs [role="tab"][aria-selected="true"]::after {
+  background: var(--ulta-accent) !important;
+  height: 3px !important;
+  border-radius: 4px;
+}
+.ulta-nav-tabs [role="tab"][aria-selected="true"] {
+  border-bottom-color: var(--ulta-accent) !important;
+}
+.ulta-theme-toggle {
+  border: 1px solid var(--ulta-border) !important;
+  border-radius: 10px !important;
+}
 
 .ulta-app-stage {
   min-height: 0;
@@ -142,7 +185,7 @@ body.ulta-plugin-ui {
   overflow-x: hidden;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
-  animation: ulta-page-in 420ms cubic-bezier(.2,.7,.2,1) both;
+  animation: ulta-page-in 420ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
 .ulta-app-stage > .ulta-main {
@@ -152,9 +195,16 @@ body.ulta-plugin-ui {
   margin: 0 auto;
 }
 
-.ulta-main { padding: 34px clamp(20px, 5vw, 72px) 48px; }
-.ulta-grid { gap: 28px; }
-.ulta-col { gap: 18px; padding-right: 4px; }
+.ulta-main {
+  padding: 34px clamp(20px, 5vw, 72px) 48px;
+}
+.ulta-grid {
+  gap: 28px;
+}
+.ulta-col {
+  gap: 18px;
+  padding-right: 4px;
+}
 .ulta-editor-shell {
   gap: 18px;
   align-items: stretch;
@@ -213,7 +263,8 @@ body.ulta-plugin-ui {
 }
 .ulta-editor-document-title {
   color: var(--ulta-ink) !important;
-  font-family: "adobe-clean", "Adobe Clean", "Source Sans Pro", system-ui, sans-serif !important;
+  font-family:
+    "adobe-clean", "Adobe Clean", "Source Sans Pro", system-ui, sans-serif !important;
   font-size: 20px !important;
   font-weight: 800 !important;
   letter-spacing: -0.3px;
@@ -244,7 +295,9 @@ body.ulta-plugin-ui {
   background: color-mix(in srgb, var(--ulta-surface) 88%, transparent);
   box-shadow: 0 5px 18px rgba(53, 37, 27, 0.045);
   justify-content: flex-end;
-  transition: border-color 180ms ease, box-shadow 180ms ease;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease;
 }
 .ulta-editor-toolbar button {
   border-radius: 9px !important;
@@ -253,7 +306,7 @@ body.ulta-plugin-ui {
   color: var(--ulta-muted);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: .2px;
+  letter-spacing: 0.2px;
   margin-right: 8px;
   white-space: nowrap;
 }
@@ -359,7 +412,10 @@ body.ulta-plugin-ui {
   border: 1px solid rgba(214, 91, 33, 0.45) !important;
   box-shadow: 0 5px 12px rgba(233, 110, 47, 0.22);
   font-weight: 700 !important;
-  transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    filter 180ms ease;
 }
 .ulta-editor-actions .ulta-editor-save-action:not(:disabled):hover {
   box-shadow: 0 8px 18px rgba(233, 110, 47, 0.32);
@@ -373,11 +429,19 @@ body.ulta-plugin-ui {
 .ulta-editor-actions .ulta-editor-harmonize-action,
 .ulta-editor-actions .ulta-editor-download-action {
   color: var(--ulta-ink) !important;
-  background: linear-gradient(180deg, var(--ulta-surface), color-mix(in srgb, var(--ulta-canvas) 72%, var(--ulta-surface))) !important;
+  background: linear-gradient(
+    180deg,
+    var(--ulta-surface),
+    color-mix(in srgb, var(--ulta-canvas) 72%, var(--ulta-surface))
+  ) !important;
   border: 1px solid var(--ulta-border) !important;
   box-shadow: 0 2px 5px rgba(53, 37, 27, 0.045);
   font-weight: 650 !important;
-  transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease,
+    box-shadow 180ms ease;
 }
 .ulta-editor-actions .ulta-editor-harmonize-action:not(:disabled):hover,
 .ulta-editor-actions .ulta-editor-download-action:not(:disabled):hover {
@@ -401,7 +465,12 @@ body.ulta-plugin-ui {
   color: var(--ulta-muted) !important;
   background: var(--ulta-surface) !important;
   box-shadow: 0 2px 5px rgba(53, 37, 27, 0.045);
-  transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+  transition:
+    color 180ms ease,
+    background-color 180ms ease,
+    border-color 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease;
 }
 .ulta-editor-actions .ulta-editor-preview-toggle:not(:disabled):hover {
   color: var(--ulta-accent) !important;
@@ -420,7 +489,11 @@ body.ulta-plugin-ui {
   color: var(--ulta-muted) !important;
   font-size: 11px !important;
   font-weight: 650 !important;
-  transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease, transform 180ms ease;
+  transition:
+    color 180ms ease,
+    background-color 180ms ease,
+    border-color 180ms ease,
+    transform 180ms ease;
 }
 .ulta-editor-actions .ulta-editor-harmonized-preview:hover {
   color: var(--ulta-accent) !important;
@@ -448,15 +521,24 @@ body.ulta-plugin-ui {
   object-fit: contain;
   flex: 0 0 auto;
   border-radius: 4px;
-  transition: transform 180ms ease, filter 180ms ease;
+  transition:
+    transform 180ms ease,
+    filter 180ms ease;
 }
 .ulta-psd-list-icon[data-loading="true"] {
   animation: ulta-psd-loading 1.2s ease-in-out infinite;
-  filter: saturate(.7);
+  filter: saturate(0.7);
 }
 @keyframes ulta-psd-loading {
-  0%, 100% { transform: scale(.88) rotate(-3deg); opacity: .62; }
-  50% { transform: scale(1.06) rotate(3deg); opacity: 1; }
+  0%,
+  100% {
+    transform: scale(0.88) rotate(-3deg);
+    opacity: 0.62;
+  }
+  50% {
+    transform: scale(1.06) rotate(3deg);
+    opacity: 1;
+  }
 }
 .ulta-editor-workspace {
   min-height: 560px;
@@ -543,7 +625,9 @@ body.ulta-plugin-ui {
   justify-content: center;
   box-sizing: border-box;
 }
-.ulta-workflow-hero { padding: 4px 0 28px; }
+.ulta-workflow-hero {
+  padding: 4px 0 28px;
+}
 .ulta-eyebrow {
   display: block;
   color: var(--ulta-accent);
@@ -555,7 +639,9 @@ body.ulta-plugin-ui {
 }
 .ulta-workflow-hero h1 {
   color: var(--ulta-ink) !important;
-  font-family: "adobe-garamond-pro", "Adobe Garamond Pro", Georgia, "Times New Roman", serif;
+  font-family:
+    "adobe-garamond-pro", "Adobe Garamond Pro", Georgia, "Times New Roman",
+    serif;
   font-size: clamp(38px, 5vw, 56px) !important;
   font-weight: 500 !important;
   letter-spacing: -2.5px !important;
@@ -569,10 +655,25 @@ body.ulta-plugin-ui {
   line-height: 1.65;
   margin-top: 16px;
 }
-.ulta-setup-progress { width: 360px; flex: 0 0 360px; padding-bottom: 5px; }
-.ulta-setup-progress span { color: var(--ulta-muted); font-size: 12px; font-weight: 700; }
-.ulta-setup-progress span:last-child { color: var(--ulta-ink); }
-.ulta-setup-progress .ulta-progress-track { margin-top: 10px; height: 8px; border-radius: 999px; background: var(--ulta-border); }
+.ulta-setup-progress {
+  width: 360px;
+  flex: 0 0 360px;
+  padding-bottom: 5px;
+}
+.ulta-setup-progress span {
+  color: var(--ulta-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+.ulta-setup-progress span:last-child {
+  color: var(--ulta-ink);
+}
+.ulta-setup-progress .ulta-progress-track {
+  margin-top: 10px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--ulta-border);
+}
 .ulta-input-card {
   flex-shrink: 0;
   border: 1px solid var(--ulta-border);
@@ -601,15 +702,23 @@ body.ulta-plugin-ui {
   font-size: 15px;
   font-weight: 800;
 }
-.ulta-autosave { color: #21866c; font-size: 12px; font-weight: 700; }
+.ulta-autosave {
+  color: #21866c;
+  font-size: 12px;
+  font-weight: 700;
+}
 .ulta-input-card-body {
   padding: 24px;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   column-gap: 24px;
 }
-.ulta-form-field { margin-bottom: 24px; }
-.ulta-form-field-half { min-width: 0; }
+.ulta-form-field {
+  margin-bottom: 24px;
+}
+.ulta-form-field-half {
+  min-width: 0;
+}
 .ulta-form-field-background {
   grid-row: span 2;
   display: flex;
@@ -626,10 +735,23 @@ body.ulta-plugin-ui {
   flex-direction: column;
 }
 .ulta-form-field-wide,
-.ulta-form-actions { grid-column: 1 / -1; }
-.ulta-field-label { color: var(--ulta-ink); font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: .7px; }
-.ulta-field-meta { color: var(--ulta-muted); font-size: 12px; }
-.ulta-form-field > div:first-child { margin-bottom: 10px; }
+.ulta-form-actions {
+  grid-column: 1 / -1;
+}
+.ulta-field-label {
+  color: var(--ulta-ink);
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+}
+.ulta-field-meta {
+  color: var(--ulta-muted);
+  font-size: 12px;
+}
+.ulta-form-field > div:first-child {
+  margin-bottom: 10px;
+}
 .ulta-input-card .ulta-dropzone {
   min-height: 116px;
   display: flex;
@@ -639,10 +761,19 @@ body.ulta-plugin-ui {
   border-radius: 16px !important;
   background: transparent !important;
 }
-.ulta-input-card .ulta-dropzone:hover { border-color: var(--ulta-accent) !important; background: var(--ulta-accent-soft) !important; }
+.ulta-input-card .ulta-dropzone:hover {
+  border-color: var(--ulta-accent) !important;
+  background: var(--ulta-accent-soft) !important;
+}
 .ulta-input-card .ulta-form-field:nth-child(2) .ulta-dropzone,
-.ulta-input-card .ulta-form-field:nth-child(3) .ulta-dropzone { min-height: 88px; }
-.ulta-form-actions { border-top: 1px solid var(--ulta-border); padding-top: 24px; margin-top: 8px; }
+.ulta-input-card .ulta-form-field:nth-child(3) .ulta-dropzone {
+  min-height: 88px;
+}
+.ulta-form-actions {
+  border-top: 1px solid var(--ulta-border);
+  padding-top: 24px;
+  margin-top: 8px;
+}
 .ulta-running-layout {
   display: grid !important;
   grid-template-columns: minmax(0, 1fr) minmax(360px, 1fr);
@@ -677,7 +808,9 @@ body.ulta-plugin-ui {
   box-shadow:
     0 20px 42px rgba(45, 31, 24, 0.18),
     0 4px 12px rgba(45, 31, 24, 0.1);
-  transition: box-shadow 220ms ease, transform 220ms ease;
+  transition:
+    box-shadow 220ms ease,
+    transform 220ms ease;
 }
 .ulta-real-canvas:focus,
 .ulta-real-canvas:hover {
@@ -697,7 +830,9 @@ body.ulta-plugin-ui {
   border: 1px solid rgba(77, 57, 45, 0.18);
   border-radius: 16px;
   background: #fff;
-  box-shadow: 0 24px 64px rgba(39, 27, 19, 0.28), 0 4px 14px rgba(39, 27, 19, 0.12);
+  box-shadow:
+    0 24px 64px rgba(39, 27, 19, 0.28),
+    0 4px 14px rgba(39, 27, 19, 0.12);
 }
 .ulta-preview-drag-handle {
   display: flex;
@@ -782,7 +917,7 @@ body.ulta-plugin-ui {
   object-fit: contain;
 }
 .ulta-stepper-card::before {
-  content: '';
+  content: "";
   position: absolute;
   width: 180px;
   height: 180px;
@@ -809,7 +944,8 @@ body.ulta-plugin-ui {
 .ulta-stepper-title {
   display: block;
   color: var(--ulta-ink);
-  font-family: "adobe-garamond-pro", "Adobe Garamond Pro", Georgia, serif !important;
+  font-family:
+    "adobe-garamond-pro", "Adobe Garamond Pro", Georgia, serif !important;
   font-size: 30px !important;
   font-weight: 500 !important;
   line-height: 1;
@@ -848,7 +984,7 @@ body.ulta-plugin-ui {
 .ulta-stepper-card > div:first-child {
   color: var(--ulta-ink);
   font-size: 15px;
-  letter-spacing: .1px;
+  letter-spacing: 0.1px;
 }
 .ulta-stepper-complete-dot,
 .ulta-stepper-pending-dot {
@@ -857,17 +993,28 @@ body.ulta-plugin-ui {
   height: 7px;
   border-radius: 50%;
 }
-.ulta-stepper-complete-dot { background: #fff; }
-.ulta-stepper-pending-dot { background: rgba(111, 99, 91, 0.35); }
+.ulta-stepper-complete-dot {
+  background: #fff;
+}
+.ulta-stepper-pending-dot {
+  background: rgba(111, 99, 91, 0.35);
+}
 .ulta-stepper-icon[data-state="active"] {
   animation: ulta-stepper-pulse 1.8s ease-in-out infinite;
 }
 @keyframes ulta-stepper-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(244, 124, 57, 0.2); }
-  50% { box-shadow: 0 0 0 8px rgba(244, 124, 57, 0.04); }
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(244, 124, 57, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(244, 124, 57, 0.04);
+  }
 }
 @keyframes ulta-stepper-orbit {
-  50% { transform: translate(-20px, 14px) scale(1.08); }
+  50% {
+    transform: translate(-20px, 14px) scale(1.08);
+  }
 }
 .ulta-stepper-card .ulta-pill {
   margin-left: 2px;
@@ -877,13 +1024,17 @@ body.ulta-plugin-ui {
   border-radius: var(--ulta-card-radius) !important;
   background: var(--ulta-asset-background) !important;
   box-shadow: 0 8px 24px rgba(53, 37, 27, 0.045);
-  transition: border-color 180ms ease, box-shadow 180ms ease;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease;
 }
 .ulta-asset-card:hover {
   border-color: rgba(244, 124, 57, 0.42) !important;
   box-shadow: 0 10px 28px rgba(53, 37, 27, 0.08);
 }
-.ulta-csv-asset-card { overflow: hidden; }
+.ulta-csv-asset-card {
+  overflow: hidden;
+}
 .ulta-psd-upload-icon {
   width: 28px;
   height: 28px;
@@ -919,7 +1070,9 @@ body.ulta-plugin-ui {
   background: rgba(255, 255, 255, 0.88);
   box-shadow: 0 12px 24px rgba(73, 40, 22, 0.12);
   transform: rotate(-3deg);
-  transition: transform 180ms ease, box-shadow 180ms ease;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease;
 }
 .ulta-psd-upload-card:hover .ulta-psd-icon-tile {
   transform: rotate(0deg) translateY(-2px);
@@ -949,7 +1102,8 @@ body.ulta-plugin-ui {
   grid-template-rows: minmax(0, 2fr) 12px minmax(0, 1fr);
   gap: 2px;
   padding: 8px;
-  border: 1px solid color-mix(in srgb, var(--ulta-accent) 24%, var(--ulta-border));
+  border: 1px solid
+    color-mix(in srgb, var(--ulta-accent) 24%, var(--ulta-border));
   border-radius: var(--ulta-card-radius);
   background: var(--ulta-asset-background);
 }
@@ -970,11 +1124,14 @@ body.ulta-plugin-ui {
   flex: 1 1 auto;
   min-height: 76px;
   min-width: 0;
-  border: 1px solid color-mix(in srgb, var(--ulta-accent) 28%, var(--ulta-border));
+  border: 1px solid
+    color-mix(in srgb, var(--ulta-accent) 28%, var(--ulta-border));
   border-radius: 10px;
   background: var(--ulta-surface);
   box-shadow: 0 2px 8px rgba(53, 37, 27, 0.045);
-  transition: border-color 150ms ease, box-shadow 150ms ease;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
 }
 .ulta-firefly-composer:focus-within {
   border-color: var(--ulta-accent);
@@ -990,11 +1147,15 @@ body.ulta-plugin-ui {
   border: 1px solid color-mix(in srgb, var(--ulta-accent) 35%, transparent);
   border-radius: 999px;
   padding: 4px 8px;
-  background: color-mix(in srgb, var(--ulta-accent-soft) 72%, var(--ulta-surface));
+  background: color-mix(
+    in srgb,
+    var(--ulta-accent-soft) 72%,
+    var(--ulta-surface)
+  );
   color: color-mix(in srgb, var(--ulta-accent) 72%, #542b17);
   font-size: 9px;
   font-weight: 800;
-  letter-spacing: .5px;
+  letter-spacing: 0.5px;
 }
 .ulta-firefly-generate-button {
   position: absolute !important;
@@ -1009,23 +1170,36 @@ body.ulta-plugin-ui {
   border-radius: 7px !important;
   font-size: 11px !important;
   font-weight: 700 !important;
-  transition: background-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+  transition:
+    background-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
 }
-.ulta-main .ulta-firefly-generator .ulta-firefly-generate-button:not(:disabled) {
+.ulta-main
+  .ulta-firefly-generator
+  .ulta-firefly-generate-button:not(:disabled) {
   border-color: var(--ulta-accent) !important;
   background-color: var(--ulta-accent) !important;
   color: #fff !important;
   box-shadow: 0 5px 12px color-mix(in srgb, var(--ulta-accent) 24%, transparent);
 }
-.ulta-main .ulta-firefly-generator .ulta-firefly-generate-button:not(:disabled):hover {
+.ulta-main
+  .ulta-firefly-generator
+  .ulta-firefly-generate-button:not(:disabled):hover {
   border-color: #d85f22 !important;
   background-color: #d85f22 !important;
   color: #fff !important;
   box-shadow: 0 7px 16px color-mix(in srgb, var(--ulta-accent) 32%, transparent);
   transform: translateY(-1px);
 }
-.ulta-main .ulta-firefly-generator .ulta-firefly-generate-button:not(:disabled) *,
-.ulta-main .ulta-firefly-generator .ulta-firefly-generate-button:not(:disabled) svg {
+.ulta-main
+  .ulta-firefly-generator
+  .ulta-firefly-generate-button:not(:disabled)
+  *,
+.ulta-main
+  .ulta-firefly-generator
+  .ulta-firefly-generate-button:not(:disabled)
+  svg {
   color: #fff !important;
   fill: currentColor !important;
 }
@@ -1044,7 +1218,9 @@ body.ulta-plugin-ui {
   width: 100%;
   height: 100%;
 }
-.ulta-firefly-prompt > div { height: 100%; }
+.ulta-firefly-prompt > div {
+  height: 100%;
+}
 .ulta-firefly-prompt textarea {
   width: 100% !important;
   height: 100% !important;
@@ -1073,8 +1249,12 @@ body.ulta-plugin-ui {
   font-size: 10px;
   line-height: 1.45;
 }
-.ulta-firefly-status { color: var(--ulta-muted); }
-.ulta-firefly-error { color: var(--spectrum-global-color-red-600); }
+.ulta-firefly-status {
+  color: var(--ulta-muted);
+}
+.ulta-firefly-error {
+  color: var(--spectrum-global-color-red-600);
+}
 .ulta-firefly-or-divider {
   display: flex;
   align-items: center;
@@ -1089,7 +1269,7 @@ body.ulta-plugin-ui {
   height: 1px;
   flex: 1 1 auto;
   background: var(--ulta-border);
-  content: '';
+  content: "";
 }
 .ulta-background-thumbnail {
   display: block;
@@ -1098,13 +1278,13 @@ body.ulta-plugin-ui {
   object-fit: cover;
   object-position: center;
   background: var(--spectrum-global-color-gray-100);
-  transform:
-    translate3d(var(--parallax-x, 0px), var(--parallax-y, 0px), 0)
+  transform: translate3d(var(--parallax-x, 0px), var(--parallax-y, 0px), 0)
     rotateX(var(--parallax-rotate-x, 0deg))
-    rotateY(var(--parallax-rotate-y, 0deg))
-    scale(1.07);
+    rotateY(var(--parallax-rotate-y, 0deg)) scale(1.07);
   transform-origin: center;
-  transition: transform 180ms cubic-bezier(.2, .7, .2, 1), filter 180ms ease;
+  transition:
+    transform 180ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    filter 180ms ease;
   will-change: transform;
 }
 .ulta-background-preview-frame {
@@ -1128,7 +1308,7 @@ body.ulta-plugin-ui {
   position: absolute;
   inset: 0;
   z-index: 1;
-  content: '';
+  content: "";
   pointer-events: none;
   opacity: 0;
   background: radial-gradient(
@@ -1218,8 +1398,14 @@ body.ulta-plugin-ui {
 }
 
 @keyframes ulta-page-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .ulta-main {
@@ -1248,39 +1434,108 @@ body.ulta-plugin-ui {
 }
 
 @media (max-width: 900px) {
-  .ulta-shell { height: auto; overflow: visible; }
-  body { overflow: auto; }
-  .ulta-grid { grid-template-columns: 1fr; height: auto; }
-  .ulta-nav-tabs { margin-left: 0; width: 100%; }
-  .ulta-header { padding-left: 20px !important; padding-right: 20px !important; }
-  .ulta-editor-toolbar { flex-wrap: wrap; }
-  .ulta-editor-actions { flex-wrap: wrap; justify-content: flex-end; max-width: 100%; }
-  .ulta-workflow-hero { align-items: start !important; flex-direction: column !important; }
-  .ulta-setup-progress { width: 100%; flex-basis: auto; }
-  .ulta-running-layout { display: flex !important; flex-direction: column; }
-  .ulta-running-form, .ulta-running-status { width: 100%; }
-  .ulta-form-field-background { grid-row: auto; }
-  .ulta-background-input-card { height: var(--ulta-upload-card-height); }
+  .ulta-shell {
+    height: auto;
+    overflow: visible;
+  }
+  body {
+    overflow: auto;
+  }
+  .ulta-grid {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+  .ulta-nav-tabs {
+    margin-left: 0;
+    width: 100%;
+  }
+  .ulta-header {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+  .ulta-editor-toolbar {
+    flex-wrap: wrap;
+  }
+  .ulta-editor-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    max-width: 100%;
+  }
+  .ulta-workflow-hero {
+    align-items: start !important;
+    flex-direction: column !important;
+  }
+  .ulta-setup-progress {
+    width: 100%;
+    flex-basis: auto;
+  }
+  .ulta-running-layout {
+    display: flex !important;
+    flex-direction: column;
+  }
+  .ulta-running-form,
+  .ulta-running-status {
+    width: 100%;
+  }
+  .ulta-form-field-background {
+    grid-row: auto;
+  }
+  .ulta-background-input-card {
+    height: var(--ulta-upload-card-height);
+  }
 }
 
 @media (max-width: 640px) {
-  .ulta-header { padding-left: 16px !important; padding-right: 16px !important; }
-  .ulta-main { padding: 12px !important; }
-  .ulta-editor-toolbar, .ulta-editor-actions { justify-content: flex-start !important; }
-  .ulta-compare-preview-body { grid-template-columns: 1fr; }
-  .ulta-compare-preview-panel img { max-height: calc(50vh - 100px); }
-  .ulta-brand { min-width: 0; }
-  .ulta-brand-subtitle { display: none; }
-  .ulta-brand-name { font-size: 14px; }
-  .ulta-brand img { width: 32px; height: 32px; }
-  .ulta-input-card-header, .ulta-input-card-body { padding-left: 18px; padding-right: 18px; }
-  .ulta-input-card-body { display: block; }
-  .ulta-workflow-hero h1 { font-size: 38px !important; }
-  .ulta-hero-copy { font-size: 15px; }
+  .ulta-header {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  .ulta-main {
+    padding: 12px !important;
+  }
+  .ulta-editor-toolbar,
+  .ulta-editor-actions {
+    justify-content: flex-start !important;
+  }
+  .ulta-compare-preview-body {
+    grid-template-columns: 1fr;
+  }
+  .ulta-compare-preview-panel img {
+    max-height: calc(50vh - 100px);
+  }
+  .ulta-brand {
+    min-width: 0;
+  }
+  .ulta-brand-subtitle {
+    display: none;
+  }
+  .ulta-brand-name {
+    font-size: 14px;
+  }
+  .ulta-brand img {
+    width: 32px;
+    height: 32px;
+  }
+  .ulta-input-card-header,
+  .ulta-input-card-body {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+  .ulta-input-card-body {
+    display: block;
+  }
+  .ulta-workflow-hero h1 {
+    font-size: 38px !important;
+  }
+  .ulta-hero-copy {
+    font-size: 15px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -1288,18 +1543,34 @@ body.ulta-plugin-ui {
 }
 
 @keyframes ulta-fade-in {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes ulta-slide-down {
-  from { opacity: 0; max-height: 0; }
-  to { opacity: 1; max-height: 480px; }
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 480px;
+  }
 }
 
 @keyframes ulta-progress-sweep {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(250%); }
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
 }
 
 .ulta-fade-in {
@@ -1312,7 +1583,9 @@ body.ulta-plugin-ui {
 }
 
 .ulta-busy {
-  transition: opacity 0.25s ease, filter 0.25s ease;
+  transition:
+    opacity 0.25s ease,
+    filter 0.25s ease;
 }
 
 .ulta-busy[data-disabled="true"] {
@@ -1329,8 +1602,12 @@ body.ulta-plugin-ui {
 /* Spectrum CircleLoader reads its active-ring color from this component token,
    which otherwise overrides the global blue palette mapping above. */
 [role="progressbar"] {
-  --spectrum-loader-circle-medium-track-fill-color: var(--ulta-accent) !important;
-  --spectrum-loader-circle-medium-over-background-track-fill-color: var(--ulta-accent) !important;
+  --spectrum-loader-circle-medium-track-fill-color: var(
+    --ulta-accent
+  ) !important;
+  --spectrum-loader-circle-medium-over-background-track-fill-color: var(
+    --ulta-accent
+  ) !important;
 }
 [data-focus-visible="true"] {
   outline-color: var(--ulta-accent) !important;
@@ -1345,9 +1622,10 @@ body.ulta-plugin-ui {
 }
 
 .ulta-progress-indeterminate::after {
-  content: '';
+  content: "";
   position: absolute;
-  top: 0; left: 0;
+  top: 0;
+  left: 0;
   height: 100%;
   width: 40%;
   border-radius: 2px;
@@ -1364,16 +1642,23 @@ body.ulta-plugin-ui {
 }
 
 .ulta-skeleton::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent, var(--ulta-skeleton-highlight), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--ulta-skeleton-highlight),
+    transparent
+  );
   animation: ulta-skeleton-sweep 1.4s ease-in-out infinite;
 }
 
 @keyframes ulta-skeleton-sweep {
-  100% { transform: translateX(100%); }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 .ulta-progress-fill {
@@ -1381,7 +1666,12 @@ body.ulta-plugin-ui {
   overflow: hidden;
   height: 100%;
   border-radius: 2px;
-  background: linear-gradient(90deg, var(--ulta-accent), #ff9a61, var(--ulta-accent));
+  background: linear-gradient(
+    90deg,
+    var(--ulta-accent),
+    #ff9a61,
+    var(--ulta-accent)
+  );
   background-size: 200% 100%;
   transition: width 0.4s ease;
 }
@@ -1389,8 +1679,12 @@ body.ulta-plugin-ui {
   animation: ulta-progress-glow 1.5s linear infinite;
 }
 @keyframes ulta-progress-glow {
-  from { background-position: 0% 0; }
-  to { background-position: 200% 0; }
+  from {
+    background-position: 0% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
 }
 
 .ulta-pill {
@@ -1419,9 +1713,15 @@ body.ulta-plugin-ui {
   border-color: var(--ulta-border);
 }
 .ulta-main button:not([aria-label*="theme"]):not([aria-label*="mode"]) {
-  transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease;
 }
-.ulta-main button:not([aria-label*="theme"]):not([aria-label*="mode"]):hover:not([disabled]) {
+.ulta-main
+  button:not([aria-label*="theme"]):not([aria-label*="mode"]):hover:not(
+    [disabled]
+  ) {
   transform: translateY(-1px);
 }
 .ulta-main .ulta-execute-btn {
@@ -1458,8 +1758,14 @@ body.ulta-plugin-ui {
 }
 
 @keyframes ulta-row-in {
-  from { opacity: 0; transform: translateX(-6px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .ulta-table {
@@ -1538,7 +1844,9 @@ body.ulta-plugin-ui {
 
 .ulta-output-card {
   width: 100%;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .ulta-output-card:hover {
@@ -1575,7 +1883,9 @@ body.ulta-plugin-ui {
   color: white;
   background: rgba(0, 0, 0, 0);
   opacity: 0;
-  transition: opacity 0.15s ease, background-color 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    background-color 0.15s ease;
 }
 
 .ulta-output-thumb-btn:hover .ulta-output-thumb-overlay,
@@ -1645,8 +1955,12 @@ body.ulta-plugin-ui {
   z-index: 1;
 }
 
-.ulta-lightbox-nav-left { left: 0; }
-.ulta-lightbox-nav-right { right: 0; }
+.ulta-lightbox-nav-left {
+  left: 0;
+}
+.ulta-lightbox-nav-right {
+  right: 0;
+}
 
 .ulta-lightbox-footer {
   padding-top: 16px;
@@ -1671,7 +1985,9 @@ body.ulta-plugin-ui {
 }
 
 @keyframes ulta-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .ulta-spinner {
@@ -1707,7 +2023,9 @@ body.ulta-plugin-ui {
   justify-content: center;
   border: 2px solid var(--spectrum-global-color-gray-300);
   background: var(--spectrum-global-color-gray-75);
-  transition: background-color 0.3s ease, border-color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease;
 }
 
 .ulta-stepper-icon[data-state="active"] {
@@ -1735,7 +2053,7 @@ body.ulta-plugin-ui {
 }
 
 .ulta-stepper-line::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   background: var(--ulta-accent);

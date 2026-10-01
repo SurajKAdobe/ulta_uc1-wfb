@@ -1,79 +1,108 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Ulta Beauty — Batch Workflow Automation</title>
-  <style>
-    #resize-handle {
-      position: fixed;
-      bottom: 0;
-      right: 0;
-      width: 16px;
-      height: 16px;
-      cursor: nwse-resize;
-      z-index: 9999;
-    }
-  </style>
-</head>
-<body>
-  <div id="root"></div>
-  <div id="resize-handle"></div>
-  <script>
-    // Figma plugin windows aren't resizable out of the box — the handle here
-    // relays drag deltas to controller.js, which is the only thread allowed
-    // to call figma.ui.resize.
-    (function () {
-      var handle = document.getElementById('resize-handle')
-      var resizing = false
-      handle.addEventListener('mousedown', function () { resizing = true })
-      document.addEventListener('mousemove', function (event) {
-        if (!resizing) return
-        parent.postMessage({
-          pluginMessage: {
-            type: 'RESIZE_WINDOW',
-            size: { width: Math.max(400, event.clientX), height: Math.max(300, event.clientY) }
-          }
-        }, '*')
-      })
-      document.addEventListener('mouseup', function () { resizing = false })
+  <head>
+    <meta charset="UTF-8" />
+    <title>Ulta Beauty — Batch Workflow Automation</title>
+    <style>
+      #resize-handle {
+        position: fixed;
+        bottom: 0;
+        right: 0;
+        width: 16px;
+        height: 16px;
+        cursor: nwse-resize;
+        z-index: 9999;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <div id="resize-handle"></div>
+    <script>
+      // Figma plugin windows aren't resizable out of the box — the handle here
+      // relays drag deltas to controller.js, which is the only thread allowed
+      // to call figma.ui.resize.
+      (function () {
+        var handle = document.getElementById("resize-handle");
+        var resizing = false;
+        handle.addEventListener("mousedown", function () {
+          resizing = true;
+        });
+        document.addEventListener("mousemove", function (event) {
+          if (!resizing) return;
+          parent.postMessage(
+            {
+              pluginMessage: {
+                type: "RESIZE_WINDOW",
+                size: {
+                  width: Math.max(400, event.clientX),
+                  height: Math.max(300, event.clientY),
+                },
+              },
+            },
+            "*",
+          );
+        });
+        document.addEventListener("mouseup", function () {
+          resizing = false;
+        });
 
-      document.addEventListener('wheel', function (event) {
-        if (event.defaultPrevented || event.ctrlKey || event.metaKey) return
-        var target = event.target instanceof Element ? event.target : event.target.parentElement
-        var unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1
-        var deltaX = event.deltaX * unit
-        var deltaY = event.deltaY * unit
-        if (event.shiftKey && !deltaX) {
-          deltaX = deltaY
-          deltaY = 0
-        }
-        var handled = false
-        for (var node = target; node; node = node.parentElement) {
-          var style = window.getComputedStyle(node)
-          if (deltaY && /^(auto|scroll)$/.test(style.overflowY)) {
-            var top = node.scrollTop
-            node.scrollTop = Math.max(0, Math.min(node.scrollHeight - node.clientHeight, top + deltaY))
-            if (node.scrollTop !== top) {
-              deltaY = 0
-              handled = true
+        document.addEventListener(
+          "wheel",
+          function (event) {
+            if (event.defaultPrevented || event.ctrlKey || event.metaKey)
+              return;
+            var target =
+              event.target instanceof Element
+                ? event.target
+                : event.target.parentElement;
+            var unit =
+              event.deltaMode === 1
+                ? 16
+                : event.deltaMode === 2
+                  ? window.innerHeight
+                  : 1;
+            var deltaX = event.deltaX * unit;
+            var deltaY = event.deltaY * unit;
+            if (event.shiftKey && !deltaX) {
+              deltaX = deltaY;
+              deltaY = 0;
             }
-          }
-          if (deltaX && /^(auto|scroll)$/.test(style.overflowX)) {
-            var left = node.scrollLeft
-            node.scrollLeft = Math.max(0, Math.min(node.scrollWidth - node.clientWidth, left + deltaX))
-            if (node.scrollLeft !== left) {
-              deltaX = 0
-              handled = true
+            var handled = false;
+            for (var node = target; node; node = node.parentElement) {
+              var style = window.getComputedStyle(node);
+              if (deltaY && /^(auto|scroll)$/.test(style.overflowY)) {
+                var top = node.scrollTop;
+                node.scrollTop = Math.max(
+                  0,
+                  Math.min(node.scrollHeight - node.clientHeight, top + deltaY),
+                );
+                if (node.scrollTop !== top) {
+                  deltaY = 0;
+                  handled = true;
+                }
+              }
+              if (deltaX && /^(auto|scroll)$/.test(style.overflowX)) {
+                var left = node.scrollLeft;
+                node.scrollLeft = Math.max(
+                  0,
+                  Math.min(node.scrollWidth - node.clientWidth, left + deltaX),
+                );
+                if (node.scrollLeft !== left) {
+                  deltaX = 0;
+                  handled = true;
+                }
+              }
+              if (!deltaX && !deltaY) break;
             }
-          }
-          if (!deltaX && !deltaY) break
-        }
-        if (handled) {
-          event.preventDefault()
-          event.stopPropagation()
-        }
-      }, { passive: false })
-    })()
-  </script>
-</body>
+            if (handled) {
+              event.preventDefault();
+              event.stopPropagation();
+            }
+          },
+          { passive: false },
+        );
+      })();
+    </script>
+  </body>
 </html>

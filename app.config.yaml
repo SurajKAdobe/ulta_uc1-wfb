@@ -194,10 +194,11 @@ application:
               require-adobe-auth: false
               final: true
 
-          # Harmonize — Workflow Builder graph 69997ca7... using the supplied
-          # input-assets node instead of Photoshop Execute Actions.
+          # Harmonize the saved composite using the bundled ATN, then render PSD/PNG.
           psd-harmonize:
             function: actions/psd-harmonize/index.js
+            include:
+              - ["photoshop-action/Harmonization_Process V2.atn", "photoshop-action"]
             web: 'yes'
             runtime: nodejs:20
             limits:
@@ -207,11 +208,6 @@ application:
               IMS_OAUTH_S2S_CLIENT_ID: $IMS_OAUTH_S2S_CLIENT_ID
               IMS_OAUTH_S2S_CLIENT_SECRET: $IMS_OAUTH_S2S_CLIENT_SECRET
               IMS_OAUTH_S2S_SCOPES: $IMS_OAUTH_S2S_SCOPES
-              API_KEY: $API_KEY
-              IMS_USER_ID: $IMS_USER_ID
-              IMS_OAUTH_S2S_ORG_ID: $IMS_OAUTH_S2S_ORG_ID
-              HARMONIZE_WORKFLOW_ID: $HARMONIZE_WORKFLOW_ID
-              HARMONIZE_INPUT_NODE_ID: $HARMONIZE_INPUT_NODE_ID
             annotations:
               require-adobe-auth: false
               final: true

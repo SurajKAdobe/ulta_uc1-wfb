@@ -374,19 +374,18 @@ export default function SkuPersonalization () {
   // Any already-harmonized output was rendered off the *previous* composite —
   // clearing it here is what actually surfaces "try again" after further
   // edits: otherwise the old preview/download just sits there looking current.
-  // Only enabled once a composite's been saved (needs its flattened PNG, not
-  // the original per-layer source PSD — see harmonizeComposite in
-  // services/psdService.js).
+  // Only enabled once a composite has been saved: Photoshop ATN harmonization
+  // uses that PSD, with its flattened PNG sent for compatibility.
   async function handleHarmonize () {
     if (!activeDoc?.downloadPngUrl) return
     const id = activeDoc.id
     updateDoc(id, { harmonizing: true, harmonizeError: null, harmonizedUrl: null, harmonizedPsdUrl: null })
     try {
-      const { harmonizedUrl, harmonizedPsdUrl } = await harmonizeComposite(activeDoc.downloadPngUrl, activeDoc.downloadUrl)
+      const { harmonizedUrl, harmonizedPsdUrl, harmonizedPsdKey, harmonizedPngKey } = await harmonizeComposite(activeDoc.downloadPngUrl, activeDoc.downloadUrl)
       updateDoc(id, { harmonizedUrl, harmonizedPsdUrl, harmonizing: false })
-      rememberSavedOutputs([{ url: harmonizedUrl, name: `${activeDoc.fileName.replace(/\.[^/.]+$/, '')} harmonized.png`, createdAt: Date.now() }])
+      rememberSavedOutputs([{ url: harmonizedUrl, key: harmonizedPngKey, name: `${activeDoc.fileName.replace(/\.[^/.]+$/, '')} harmonized.png`, createdAt: Date.now() }])
       if (harmonizedPsdUrl) {
-        rememberSavedOutputs([{ url: harmonizedPsdUrl, name: `${activeDoc.fileName.replace(/\.[^/.]+$/, '')} harmonized.psd`, createdAt: Date.now() }])
+        rememberSavedOutputs([{ url: harmonizedPsdUrl, key: harmonizedPsdKey, name: `${activeDoc.fileName.replace(/\.[^/.]+$/, '')} harmonized.psd`, createdAt: Date.now() }])
       }
     } catch (e) {
       updateDoc(id, { harmonizeError: e.message, harmonizing: false })

@@ -39,8 +39,8 @@ export async function saveComposite (source, edits) {
   return { presignedUrl: psdSlot.getUrl, key: psdSlot.key, pngPresignedUrl: pngSlot.getUrl }
 }
 
-// Runs the saved composite PSD and flattened PNG through the harmonization
-// Workflow Builder graph (see psd-harmonize/index.js).
+// Runs the saved composite PSD through Photoshop ATN harmonization and renders
+// the final PSD and PNG (see psd-harmonize/index.js). PNG input is optional compatibility.
 export async function harmonizeComposite (compositePngUrl, compositePsdUrl) {
   const response = await callAction('psd-harmonize', {
     presignedUrl: compositePngUrl,
@@ -53,6 +53,10 @@ export async function harmonizeComposite (compositePngUrl, compositePsdUrl) {
 
   return {
     harmonizedUrl: response.harmonizedUrl,
-    harmonizedPsdUrl: response.harmonizedPsdUrl || null
+    harmonizedPsdUrl: response.harmonizedPsdUrl || null,
+    harmonizedPsdKey: response.harmonizedPsdKey,
+    harmonizedPngKey: response.harmonizedPngKey,
+    jobId: response.jobId,
+    result: response.result
   }
 }

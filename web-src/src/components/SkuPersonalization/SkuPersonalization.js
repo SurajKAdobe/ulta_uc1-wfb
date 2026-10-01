@@ -494,7 +494,7 @@ export default function SkuPersonalization () {
                 <Button
                   variant="accent"
                   UNSAFE_style={{ backgroundColor: 'var(--ulta-accent)' }}
-                  UNSAFE_className={`ulta-editor-action ulta-execute-btn${(activeDoc.saving || activeDoc.exporting) ? ' ulta-executing' : ''}`}
+                  UNSAFE_className={`ulta-editor-action ulta-editor-save-action ulta-execute-btn${(activeDoc.saving || activeDoc.exporting) ? ' ulta-executing' : ''}`}
                   isDisabled={activeDoc.saving || activeDoc.exporting}
                   onPress={IS_FIGMA_PLUGIN ? (activeDoc.figmaFrameId ? handleSyncAndSave : handleExportToCanvas) : handleSave}
                 >
@@ -518,7 +518,7 @@ export default function SkuPersonalization () {
                     flattened PNG — only makes sense once a composite exists. */}
                 <Button
                   variant="secondary"
-                  UNSAFE_className={`ulta-editor-action${activeDoc.harmonizing ? ' ulta-executing' : ''}`}
+                  UNSAFE_className={`ulta-editor-action ulta-editor-harmonize-action${activeDoc.harmonizing ? ' ulta-executing' : ''}`}
                   isDisabled={!activeDoc.downloadPngUrl || activeDoc.saving || activeDoc.exporting || activeDoc.harmonizing}
                   onPress={handleHarmonize}
                 >
@@ -541,14 +541,31 @@ export default function SkuPersonalization () {
                   <ActionButton
                     isQuiet
                     aria-label="Preview harmonized image"
+                    UNSAFE_className="ulta-editor-harmonized-preview"
                     onPress={() => setPreviewDialog({ url: activeDoc.harmonizedUrl, title: 'Harmonized preview' })}
                   >
                     <Text UNSAFE_style={{ fontSize: 12 }}>Preview harmonized</Text>
                   </ActionButton>
                 )}
 
+                {activeDoc.downloadPngUrl && activeDoc.harmonizedUrl && (
+                  <ActionButton
+                    isQuiet
+                    aria-label="Compare composite and harmonized images"
+                    UNSAFE_className="ulta-editor-harmonized-preview"
+                    onPress={() => setPreviewDialog({
+                      mode: 'compare',
+                      title: 'Composite comparison',
+                      beforeUrl: activeDoc.downloadPngUrl,
+                      afterUrl: activeDoc.harmonizedUrl
+                    })}
+                  >
+                    <Text UNSAFE_style={{ fontSize: 12 }}>Compare</Text>
+                  </ActionButton>
+                )}
+
                 <MenuTrigger>
-                  <Button variant="secondary" UNSAFE_className="ulta-editor-action" isDisabled={!activeDoc.harmonizedUrl && !activeDoc.harmonizedPsdUrl}>
+                  <Button variant="secondary" UNSAFE_className="ulta-editor-action ulta-editor-download-action" isDisabled={!activeDoc.harmonizedUrl && !activeDoc.harmonizedPsdUrl}>
                     <Flex gap="size-100" alignItems="center">
                       <Text>{activeDoc.downloaded ? 'Downloaded' : 'Download'}</Text>
                       <ChevronDown size="XS" />
@@ -763,10 +780,11 @@ export default function SkuPersonalization () {
           dragHandleClassName="ulta-preview-drag-handle"
           cancel="button,[role='button']"
           enableResizing={false}
+          key={previewDialog.mode === 'compare' ? 'comparison-preview' : 'image-preview'}
           default={{
-            x: Math.max(16, (typeof window === 'undefined' ? 1000 : window.innerWidth) - 800),
+            x: Math.max(16, (typeof window === 'undefined' ? 1000 : window.innerWidth) - (previewDialog.mode === 'compare' ? 1140 : 800)),
             y: 72,
-            width: Math.max(1, Math.min(760, (typeof window === 'undefined' ? 800 : window.innerWidth) - 32)),
+            width: Math.max(1, Math.min(previewDialog.mode === 'compare' ? 1100 : 760, (typeof window === 'undefined' ? 800 : window.innerWidth) - 32)),
             height: Math.max(1, Math.min(720, (typeof window === 'undefined' ? 800 : window.innerHeight) - 96))
           }}
           className="ulta-preview-floating-window"
@@ -781,9 +799,24 @@ export default function SkuPersonalization () {
                 <CloseIcon size="S" />
               </ActionButton>
             </div>
-            <div className="ulta-preview-floating-body">
-              <img src={previewDialog.url} alt={previewDialog.title} />
-            </div>
+            {previewDialog.mode === 'compare'
+              ? (
+              <div className="ulta-preview-floating-body ulta-compare-preview-body">
+                <figure className="ulta-compare-preview-panel">
+                  <figcaption>Before harmonization</figcaption>
+                  <img src={previewDialog.beforeUrl} alt="Composite before harmonization" />
+                </figure>
+                <figure className="ulta-compare-preview-panel">
+                  <figcaption>After harmonization</figcaption>
+                  <img src={previewDialog.afterUrl} alt="Composite after harmonization" />
+                </figure>
+              </div>
+              )
+              : (
+              <div className="ulta-preview-floating-body">
+                <img src={previewDialog.url} alt={previewDialog.title} />
+              </div>
+              )}
           </section>
         </Rnd>
       )}

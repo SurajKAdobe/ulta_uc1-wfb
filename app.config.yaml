@@ -216,6 +216,38 @@ application:
               require-adobe-auth: false
               final: true
 
+          firefly-generate:
+            function: actions/firefly-generate/index.js
+            web: 'yes'
+            runtime: nodejs:20
+            limits:
+              timeout: 60000
+            inputs:
+              LOG_LEVEL: info
+              API_KEY: $API_KEY
+              IMS_OAUTH_S2S_CLIENT_ID: $IMS_OAUTH_S2S_CLIENT_ID
+              IMS_OAUTH_S2S_CLIENT_SECRET: $IMS_OAUTH_S2S_CLIENT_SECRET
+              IMS_OAUTH_S2S_SCOPES: $IMS_OAUTH_S2S_SCOPES
+            annotations:
+              require-adobe-auth: false
+              final: true
+
+          firefly-generation-status:
+            function: actions/firefly-generation-status/index.js
+            web: 'yes'
+            runtime: nodejs:20
+            limits:
+              timeout: 120000
+            inputs:
+              LOG_LEVEL: info
+              API_KEY: $API_KEY
+              IMS_OAUTH_S2S_CLIENT_ID: $IMS_OAUTH_S2S_CLIENT_ID
+              IMS_OAUTH_S2S_CLIENT_SECRET: $IMS_OAUTH_S2S_CLIENT_SECRET
+              IMS_OAUTH_S2S_SCOPES: $IMS_OAUTH_S2S_SCOPES
+            annotations:
+              require-adobe-auth: false
+              final: true
+
           # UC4 batch workflow — CSV in, Workflow Builder run, output PSDs feed
           # into the SKU Personalization editor above. Graph still in progress;
           # UC4_WORKFLOW_ID/UC4_WORKFLOW_INPUT_NODE_IDS are placeholders until

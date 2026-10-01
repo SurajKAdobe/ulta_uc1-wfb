@@ -12,6 +12,8 @@
   "ulta-wfb/psd-manifest": "https://localhost:9080/api/v1/web/ulta-wfb/psd-manifest",
   "ulta-wfb/psd-composite": "https://localhost:9080/api/v1/web/ulta-wfb/psd-composite",
   "ulta-wfb/psd-harmonize": "https://localhost:9080/api/v1/web/ulta-wfb/psd-harmonize",
+  "ulta-wfb/firefly-generate": "https://localhost:9080/api/v1/web/ulta-wfb/firefly-generate",
+  "ulta-wfb/firefly-generation-status": "https://localhost:9080/api/v1/web/ulta-wfb/firefly-generation-status",
   "ulta-wfb/execute-uc4-workflow": "https://localhost:9080/api/v1/web/ulta-wfb/execute-uc4-workflow",
   "ulta-wfb/preview-uc4-workflow": "https://localhost:9080/api/v1/web/ulta-wfb/preview-uc4-workflow",
   "ulta-wfb/execute-uc2b-workflow": "https://localhost:9080/api/v1/web/ulta-wfb/execute-uc2b-workflow",

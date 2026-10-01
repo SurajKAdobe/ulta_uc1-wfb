@@ -13,6 +13,7 @@ import { readUc4CsvPreview } from '../../services/csvService'
 import { refreshPresignedUrl, uploadFile } from '../../services/uploadService'
 import { runUc4Workflow, extractUc4OutputPsds } from '../../services/uc4WorkflowService'
 import { checkWorkflowStatus, isTerminalStatus, isFailedStatus } from '../../services/workflowService'
+import { generateFireflyBackground, getFireflyGenerationStatus } from '../../services/fireflyService'
 import { readUc4Session, writeUc4Session } from '../../utils/uc4Storage'
 
 const POLL_INTERVAL_MS = 4000
@@ -83,6 +84,10 @@ export default function Uc4Workflow ({ onOutputPsds, onRunningChange }) {
   const [backgroundImage, setBackgroundImage] = useState(() => initialWorkflow?.backgroundImage || null) // { fileName, presignedUrl, previewUrl }
   const [imageUploading, setImageUploading] = useState(false)
   const [imageError, setImageError] = useState(null)
+  const [fireflyPrompt, setFireflyPrompt] = useState('A premium beauty campaign background only, warm orange studio gradient, elegant minimal display pedestals, soft diffused lighting, no products, no text, landscape composition')
+  const [fireflyGenerating, setFireflyGenerating] = useState(false)
+  const [fireflyGenerationStatus, setFireflyGenerationStatus] = useState('')
+  const [fireflyGenerationError, setFireflyGenerationError] = useState(null)
 
   const [colorHex, setColorHex] = useState(() => initialWorkflow?.colorHex || '#FFFFFF')
 
@@ -193,6 +198,43 @@ export default function Uc4Workflow ({ onOutputPsds, onRunningChange }) {
       setImageError(e.message)
     } finally {
       setImageUploading(false)
+    }
+  }
+
+  async function handleGenerateBackground () {
+    if (!fireflyPrompt.trim()) return
+    setFireflyGenerating(true)
+    setFireflyGenerationError(null)
+    setFireflyGenerationStatus('Submitting prompt to the Ulta UC4 model…')
+    try {
+      const { jobId, statusUrl } = await generateFireflyBackground(fireflyPrompt)
+      if (!jobId || !statusUrl) throw new Error('Firefly did not return a valid generation job.')
+      const deadline = Date.now() + 4 * 60 * 1000
+      while (Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 3500))
+        const result = await getFireflyGenerationStatus({ jobId, statusUrl })
+        const status = String(result.status || 'pending').toLowerCase()
+        if (status === 'completed' && result.url) {
+          setBackgroundImage({
+            fileName: result.fileName || 'Firefly generated background.png',
+            presignedUrl: result.url,
+            previewUrl: result.url,
+            key: result.key
+          })
+          setFireflyGenerationStatus('Background generated and saved to your assets.')
+          return
+        }
+        if (['failed', 'error', 'cancelled', 'canceled'].includes(status)) {
+          throw new Error(result.message || `Firefly generation ${status}.`)
+        }
+        setFireflyGenerationStatus(result.message || `Generating background… ${status}`)
+      }
+      throw new Error('Background generation timed out. Please try again.')
+    } catch (error) {
+      setFireflyGenerationError(error.message)
+      setFireflyGenerationStatus('')
+    } finally {
+      setFireflyGenerating(false)
     }
   }
 
@@ -328,11 +370,24 @@ export default function Uc4Workflow ({ onOutputPsds, onRunningChange }) {
             </Flex>
             <Uc4PsdUpload value={templatePsd} isUploading={psdUploading} error={psdError} disabled={running} onSelect={handlePsdSelect} onRemove={() => { setTemplatePsd(null); setPsdError(null) }} />
           </div>
-          <div className="ulta-form-field ulta-form-field-half">
+          <div className={`ulta-form-field ulta-form-field-half ulta-form-field-background${backgroundImage ? ' ulta-form-field-background-selected' : ''}`}>
             <Flex justifyContent="space-between" alignItems="center">
               <Text UNSAFE_className="ulta-field-label">Background image</Text><Text UNSAFE_className="ulta-field-meta">Optional</Text>
             </Flex>
-            <Uc4ImageUpload value={backgroundImage} isUploading={imageUploading} error={imageError} disabled={running} onSelect={handleImageSelect} onRemove={() => { setBackgroundImage(null); setImageError(null) }} />
+            <Uc4ImageUpload
+              value={backgroundImage}
+              isUploading={imageUploading}
+              error={imageError}
+              disabled={running}
+              onSelect={handleImageSelect}
+              onRemove={() => { setBackgroundImage(null); setImageError(null) }}
+              prompt={fireflyPrompt}
+              onPromptChange={setFireflyPrompt}
+              isGenerating={fireflyGenerating}
+              generationStatus={fireflyGenerationStatus}
+              generationError={fireflyGenerationError}
+              onGenerate={handleGenerateBackground}
+            />
           </div>
           <div className="ulta-form-field ulta-form-field-half">
             <Flex justifyContent="space-between" alignItems="center">

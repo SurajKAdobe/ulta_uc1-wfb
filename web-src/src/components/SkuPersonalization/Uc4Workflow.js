@@ -84,7 +84,7 @@ export default function Uc4Workflow ({ onOutputPsds, onRunningChange }) {
   const [backgroundImage, setBackgroundImage] = useState(() => initialWorkflow?.backgroundImage || null) // { fileName, presignedUrl, previewUrl }
   const [imageUploading, setImageUploading] = useState(false)
   const [imageError, setImageError] = useState(null)
-  const [fireflyPrompt, setFireflyPrompt] = useState('A premium beauty campaign background only, warm orange studio gradient, elegant minimal display pedestals, soft diffused lighting, no products, no text, landscape composition')
+  const [fireflyPrompt, setFireflyPrompt] = useState('five geometric shapes composed of cylindrical and rectangular forms arranged in staggered positions on a flat surface with soft gradients in the background')
   const [fireflyGenerating, setFireflyGenerating] = useState(false)
   const [fireflyGenerationStatus, setFireflyGenerationStatus] = useState('')
   const [fireflyGenerationError, setFireflyGenerationError] = useState(null)

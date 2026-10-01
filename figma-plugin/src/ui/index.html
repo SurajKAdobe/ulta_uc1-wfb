@@ -36,6 +36,43 @@
         }, '*')
       })
       document.addEventListener('mouseup', function () { resizing = false })
+
+      document.addEventListener('wheel', function (event) {
+        if (event.defaultPrevented || event.ctrlKey || event.metaKey) return
+        var target = event.target instanceof Element ? event.target : event.target.parentElement
+        var unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1
+        var deltaX = event.deltaX * unit
+        var deltaY = event.deltaY * unit
+        if (event.shiftKey && !deltaX) {
+          deltaX = deltaY
+          deltaY = 0
+        }
+        var handled = false
+        for (var node = target; node; node = node.parentElement) {
+          var style = window.getComputedStyle(node)
+          if (deltaY && /^(auto|scroll)$/.test(style.overflowY)) {
+            var top = node.scrollTop
+            node.scrollTop = Math.max(0, Math.min(node.scrollHeight - node.clientHeight, top + deltaY))
+            if (node.scrollTop !== top) {
+              deltaY = 0
+              handled = true
+            }
+          }
+          if (deltaX && /^(auto|scroll)$/.test(style.overflowX)) {
+            var left = node.scrollLeft
+            node.scrollLeft = Math.max(0, Math.min(node.scrollWidth - node.clientWidth, left + deltaX))
+            if (node.scrollLeft !== left) {
+              deltaX = 0
+              handled = true
+            }
+          }
+          if (!deltaX && !deltaY) break
+        }
+        if (handled) {
+          event.preventDefault()
+          event.stopPropagation()
+        }
+      }, { passive: false })
     })()
   </script>
 </body>

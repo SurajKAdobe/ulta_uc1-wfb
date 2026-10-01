@@ -119,7 +119,7 @@ function RotateHandle ({ angle, onRotateChange, onRotateEnd, onAngleCommit }) {
 // their thumbnail/rendition, not truly rendered/blended pixels. Good enough to
 // move/resize/rotate layers for a composite; not a pixel-accurate Photoshop
 // preview.
-export default function LayerCanvas ({ psdDocument, layers, selectedId, onSelect, onChange, disabled, canvasZoom = 1, onZoomChange }) {
+export default function LayerCanvas ({ psdDocument, layers, selectedId, onSelect, onChange, disabled, canvasZoom = 1, onZoomChange, interfaceScale = 1 }) {
   const canvasRef = useRef(null)
 
   // Ctrl/Cmd+scroll to zoom, same convention as Figma/Photoshop/every design
@@ -299,6 +299,7 @@ export default function LayerCanvas ({ psdDocument, layers, selectedId, onSelect
           <Rnd
             key={layer.id}
             bounds="parent"
+            scale={interfaceScale}
             disableDragging={disabled}
             enableResizing={!disabled}
             lockAspectRatio

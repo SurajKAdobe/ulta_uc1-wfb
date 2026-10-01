@@ -1,6 +1,7 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import App from '../../../web-src/src/components/App'
+import { initializeUc4PluginStorage } from '../../../web-src/src/utils/uc4Storage'
 import '../../../web-src/src/styles/ulta-theme.css'
 
 // Read by web-src/src/services/uploadService.js to relay storage PUTs through
@@ -23,9 +24,14 @@ function renderFatalError (error) {
 window.addEventListener('error', (event) => renderFatalError(event.error || event.message))
 window.addEventListener('unhandledrejection', (event) => renderFatalError(event.reason))
 
-try {
-  const root = createRoot(document.getElementById('root'))
-  root.render(<App />)
-} catch (error) {
-  renderFatalError(error)
+async function startApp () {
+  try {
+    await initializeUc4PluginStorage()
+    const root = createRoot(document.getElementById('root'))
+    root.render(<App />)
+  } catch (error) {
+    renderFatalError(error)
+  }
 }
+
+startApp()

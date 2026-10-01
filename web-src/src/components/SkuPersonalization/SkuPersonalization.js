@@ -49,6 +49,19 @@ function restoreLayerState (layers, savedState) {
 // upload/manifest/edit/save state — the LAYERS panel and PREVIEW canvas always
 // reflect whichever one is currently `activeId`.
 export default function SkuPersonalization () {
+  const [interfaceScale, setInterfaceScale] = useState(1)
+
+  useEffect(() => {
+    const root = document.documentElement
+    function updateInterfaceScale () {
+      setInterfaceScale(Number(root.style.getPropertyValue('--ulta-plugin-ui-scale')) || 1)
+    }
+    updateInterfaceScale()
+    const observer = new MutationObserver(updateInterfaceScale)
+    observer.observe(root, { attributes: true, attributeFilter: ['style'] })
+    return () => observer.disconnect()
+  }, [])
+
   const [initialSession] = useState(() => readUc4Session())
   const [documents, setDocuments] = useState(() => (initialSession?.documents || []).map((stored, index) => ({
     ...newDocEntry(stored.id ?? index + 1, stored.fileName),
@@ -103,8 +116,16 @@ export default function SkuPersonalization () {
         : doc.layerState
     }))
     const saved = writeUc4Session({ documents: serializedDocuments, activeId, showCampaignInputs })
-    if (!saved) setStorageWarning('Browser storage is full; recent UC4 outputs may not survive a refresh.')
+    if (!saved) setStorageWarning('Could not save UC4 changes; storage may be unavailable or full.')
   }, [documents, activeId, showCampaignInputs])
+
+  useEffect(() => {
+    function handleStorageError () {
+      setStorageWarning('Could not save UC4 changes in Figma; recent changes may not survive reopening the plugin.')
+    }
+    window.addEventListener('ulta-uc4-storage-error', handleStorageError)
+    return () => window.removeEventListener('ulta-uc4-storage-error', handleStorageError)
+  }, [])
 
   const activeDoc = documents.find((d) => d.id === activeId) || null
   const isEditorLoading = uc4Running || !!activeDoc?.manifestLoading || !!activeDoc?.uploading
@@ -189,13 +210,17 @@ export default function SkuPersonalization () {
       setStorageWarning('Could not save the completed workflow session in browser storage.')
     }
     setShowCampaignInputs(false)
+    const addedDocuments = []
     for (const { url, name } of psds) {
       if (documents.some((doc) => doc.presignedUrl === url)) continue
       nextIdRef.current += 1
       const id = nextIdRef.current
-      setDocuments((prev) => [...prev, { ...newDocEntry(id, name), presignedUrl: url }])
+      addedDocuments.push({ ...newDocEntry(id, name), presignedUrl: url })
       setActiveId((prev) => prev ?? id)
-      loadManifestFor(id, url)
+    }
+    if (addedDocuments.length > 0) {
+      setDocuments((prev) => [...addedDocuments, ...prev])
+      for (const doc of addedDocuments) loadManifestFor(doc.id, doc.presignedUrl)
     }
   }
 
@@ -763,6 +788,7 @@ export default function SkuPersonalization () {
                     onChange={(layerId, bounds) => handleLayerChange(doc.id, layerId, bounds)}
                     disabled={doc.saving}
                     canvasZoom={doc.zoom ?? 1}
+                    interfaceScale={interfaceScale}
                     onZoomChange={(deltaY) => adjustZoom(doc.id, -deltaY * 0.0015)}
                   />
                 </div>
@@ -776,6 +802,7 @@ export default function SkuPersonalization () {
       {previewDialog && (
         <Rnd
           bounds="window"
+          scale={interfaceScale}
           dragHandleClassName="ulta-preview-drag-handle"
           cancel="button,[role='button']"
           enableResizing={false}

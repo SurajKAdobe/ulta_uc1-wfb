@@ -74,8 +74,15 @@ body {
 /* Single-page shell: header is fixed height, main area fills the rest of the
    viewport with no page-level scroll. Columns get their own scroll as a safety
    net on short viewports, but content is sized to fit without it. */
+body.ulta-plugin-ui {
+  transform: scale(var(--ulta-plugin-ui-scale, 1));
+  transform-origin: top left;
+  width: calc(100% / var(--ulta-plugin-ui-scale, 1));
+  height: calc(100vh / var(--ulta-plugin-ui-scale, 1));
+}
+
 .ulta-shell {
-  height: 100vh;
+  height: calc(100vh / var(--ulta-plugin-ui-scale, 1));
   display: flex;
   flex-direction: column;
   background:
@@ -567,6 +574,7 @@ body {
 .ulta-setup-progress span:last-child { color: var(--ulta-ink); }
 .ulta-setup-progress .ulta-progress-track { margin-top: 10px; height: 8px; border-radius: 999px; background: var(--ulta-border); }
 .ulta-input-card {
+  flex-shrink: 0;
   border: 1px solid var(--ulta-border);
   border-radius: var(--ulta-card-radius);
   background: var(--ulta-asset-background);
@@ -1042,7 +1050,7 @@ body {
   height: 100% !important;
   min-height: 76px !important;
   box-sizing: border-box !important;
-  padding: 10px 106px 10px 12px !important;
+  padding: 16px 112px 16px 16px !important;
   resize: none;
   border: 0 !important;
   box-shadow: none !important;

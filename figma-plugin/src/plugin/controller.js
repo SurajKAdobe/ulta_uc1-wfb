@@ -151,7 +151,22 @@ async function handleSyncFromCanvas ({ requestId, frameId }) {
   }
 }
 
+async function handleUc4Storage (type, { requestId, values }) {
+  try {
+    if (type === 'GET_UC4_STORAGE') {
+      const stored = await figma.clientStorage.getAsync('ulta-uc4-storage-v1')
+      reply(type, requestId, { values: stored || {} })
+    } else {
+      await figma.clientStorage.setAsync('ulta-uc4-storage-v1', values)
+      reply(type, requestId, {})
+    }
+  } catch (error) {
+    replyError(type, requestId, error)
+  }
+}
+
 figma.ui.onmessage = async (msg) => {
+  if (msg?.type === 'GET_UC4_STORAGE' || msg?.type === 'SET_UC4_STORAGE') return handleUc4Storage(msg.type, msg.message)
   if (msg?.type === 'STORAGE_PUT') return handleStoragePut(msg.message)
   if (msg?.type === 'EXPORT_PSD_TO_CANVAS') return handleExportToCanvas(msg.message)
   if (msg?.type === 'SYNC_PSD_FROM_CANVAS') return handleSyncFromCanvas(msg.message)

@@ -1,7 +1,10 @@
-import React from "react";
-import { View, Flex, Text, Tabs, TabList, Item, ActionButton } from "@adobe/react-spectrum";
+import React, { useEffect, useState } from "react";
+import { View, Flex, Text, Tabs, TabList, Item, ActionButton, Tooltip, TooltipTrigger } from "@adobe/react-spectrum";
 import Light from "@spectrum-icons/workflow/Light";
 import Moon from "@spectrum-icons/workflow/Moon";
+import ZoomIn from "@spectrum-icons/workflow/ZoomIn";
+import ZoomOut from "@spectrum-icons/workflow/ZoomOut";
+import Refresh from "@spectrum-icons/workflow/Refresh";
 // Inlined as a base64 data URI (not a file path or bundler import) so it renders
 // correctly regardless of how the dev/prod server handles static asset requests —
 // a plain <img src="./ulta_logo.png"> and a webpack file import both rendered broken
@@ -37,6 +40,49 @@ export function tabForHash (hash) {
   return TABS.COMPILATION;
 }
 
+function PluginZoom () {
+  const [zoom, setZoom] = useState(80);
+
+  useEffect(() => {
+    const hadPluginClass = document.body.classList.contains("ulta-plugin-ui");
+    const previousScale = document.documentElement.style.getPropertyValue("--ulta-plugin-ui-scale");
+    document.body.classList.add("ulta-plugin-ui");
+    document.documentElement.style.setProperty("--ulta-plugin-ui-scale", String(zoom / 100));
+    return () => {
+      if (!hadPluginClass) document.body.classList.remove("ulta-plugin-ui");
+      if (previousScale) {
+        document.documentElement.style.setProperty("--ulta-plugin-ui-scale", previousScale);
+      } else {
+        document.documentElement.style.removeProperty("--ulta-plugin-ui-scale");
+      }
+    };
+  }, [zoom]);
+
+  return (
+    <Flex alignItems="center" gap="size-50" flexShrink={0}>
+      <TooltipTrigger>
+        <ActionButton isQuiet aria-label="Zoom out plugin interface" isDisabled={zoom <= 50} onPress={() => setZoom((value) => Math.max(50, value - 10))}>
+          <ZoomOut size="S" />
+        </ActionButton>
+        <Tooltip>Zoom out plugin interface</Tooltip>
+      </TooltipTrigger>
+      <Text aria-live="polite" aria-label={`Plugin interface zoom ${zoom}%`} UNSAFE_style={{ minWidth: "5ch", textAlign: "center" }}>{zoom}%</Text>
+      <TooltipTrigger>
+        <ActionButton isQuiet aria-label="Zoom in plugin interface" isDisabled={zoom >= 150} onPress={() => setZoom((value) => Math.min(150, value + 10))}>
+          <ZoomIn size="S" />
+        </ActionButton>
+        <Tooltip>Zoom in plugin interface</Tooltip>
+      </TooltipTrigger>
+      <TooltipTrigger>
+        <ActionButton isQuiet aria-label="Reset plugin interface zoom" isDisabled={zoom === 100} onPress={() => setZoom(100)}>
+          <Refresh size="S" />
+        </ActionButton>
+        <Tooltip>Reset plugin interface zoom to 100%</Tooltip>
+      </TooltipTrigger>
+    </Flex>
+  );
+}
+
 // Header only owns the app bar (logo + feature tabs). Each feature's own page
 // content owns its primary action button(s) — ponytail: keeping a single global
 // Execute button here would couple Header to whichever tab happens to be active.
@@ -48,8 +94,8 @@ export default function Header({ activeTab, onTabChange, colorScheme, onToggleCo
       backgroundColor="gray-50"
       UNSAFE_className="ulta-fade-in ulta-header"
     >
-      <Flex direction="row" alignItems="center" justifyContent="space-between" gap="size-150">
-        <Flex direction="row" alignItems="center" gap="size-200">
+      <Flex direction="row" alignItems="center" justifyContent="space-between" gap="size-150" wrap>
+        <Flex direction="row" alignItems="center" gap="size-200" flex="1" minWidth={0} wrap>
           <Flex alignItems="center" gap="size-150" UNSAFE_className="ulta-brand">
             <img src={ULTA_LOGO_DATA_URI} alt="Ulta Beauty" height={38} />
             <View UNSAFE_className="ulta-brand-copy">
@@ -62,6 +108,7 @@ export default function Header({ activeTab, onTabChange, colorScheme, onToggleCo
             density="compact"
             isQuiet
             selectedKey={activeTab}
+            minWidth={0}
             UNSAFE_className="ulta-nav-tabs"
             onSelectionChange={onTabChange}
           >
@@ -75,6 +122,7 @@ export default function Header({ activeTab, onTabChange, colorScheme, onToggleCo
 
         <Flex gap="size-150" alignItems="center" wrap justifyContent="end">
           {activeTab === TABS.COMPILATION && <BatchHistory />}
+          {window.__FIGMA_PLUGIN__ && <PluginZoom />}
           <ActionButton
             isQuiet
             onPress={onToggleColorScheme}

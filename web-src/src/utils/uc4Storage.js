@@ -1,12 +1,21 @@
+import { callSandbox } from '../services/figmaBridge'
+
 const SESSION_KEY = 'ulta-uc4-session-v1'
 const WORKFLOW_SESSION_KEY = 'ulta-uc4-workflow-session-v1'
 const EDITOR_SESSION_KEY = 'ulta-uc4-editor-session-v1'
 const OUTPUTS_KEY = 'ulta-uc4-saved-outputs-v1'
 const MAX_SAVED_OUTPUTS = 50
+let pluginStorage = null
+let pendingPluginWrite = Promise.resolve()
+
+export async function initializeUc4PluginStorage () {
+  const { values } = await callSandbox('GET_UC4_STORAGE', {})
+  pluginStorage = values || {}
+}
 
 function readJson (key, fallback) {
   try {
-    const value = localStorage.getItem(key)
+    const value = pluginStorage ? pluginStorage[key] : localStorage.getItem(key)
     return value ? JSON.parse(value) : fallback
   } catch (error) {
     console.warn(`Unable to read UC4 browser storage (${key}).`, error)
@@ -16,7 +25,19 @@ function readJson (key, fallback) {
 
 function writeJson (key, value) {
   try {
-    localStorage.setItem(key, JSON.stringify(value))
+    const serialized = JSON.stringify(value)
+    if (pluginStorage) {
+      pluginStorage[key] = serialized
+      const values = { ...pluginStorage }
+      pendingPluginWrite = pendingPluginWrite
+        .then(() => callSandbox('SET_UC4_STORAGE', { values }))
+        .catch((error) => {
+          console.warn('Unable to save UC4 plugin storage.', error)
+          window.dispatchEvent(new CustomEvent('ulta-uc4-storage-error'))
+        })
+    } else {
+      localStorage.setItem(key, serialized)
+    }
     return true
   } catch (error) {
     console.warn(`Unable to save UC4 browser storage (${key}).`, error)
